@@ -12,7 +12,7 @@ endif()
 project ("SAR_RayTracer")
 
 # Add source to this project's executable.
-add_executable (SAR_RayTracer "src/SAR_RayTracer.cpp" "include/SAR_RayTracer.h")
+add_executable (SAR_RayTracer "src/SAR_RayTracer.cpp" "include/SAR_RayTracer.h"  "include/vec3.h")
 
 if (CMAKE_VERSION VERSION_GREATER 3.12)
   set_property(TARGET SAR_RayTracer PROPERTY CXX_STANDARD 20)
