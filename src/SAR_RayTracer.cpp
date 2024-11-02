@@ -1,4 +1,5 @@
-﻿// SAR_RayTracer.cpp : Defines the entry point for the application.
+﻿// This program is currently following the Ray Tracing in a Weekend series to build the ray tracer portion of the project.
+// Then, we will incorporate a SAR application to follow.
 //
 
 
