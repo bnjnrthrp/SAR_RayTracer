@@ -3,32 +3,32 @@
 
 
 #include <iostream>
+#include <cfloat>
+#include <stdlib.h>
 #include "../include/hitable_list.h"
 #include "../include/sphere.h"
 #include "../include/camera.h"
-#include <cfloat>
+#include "../include/material.h"
 
-vec3 random_in_unit_sphere();
-vec3 random_in_unit_sphere() {
-	vec3 p;
-	do {
-		p = 2.0 * vec3(drand48(), drand48(), drand48()) - vec3(1, 1, 1);
-	} while (p.squared_length() >= 1.0);
-	return p;
-}
 
-vec3 color(const ray& r, hitable *world);
-vec3 color(const ray& r, hitable *world) {
+
+vec3 color(const ray& r, hitable *world, int depth);
+vec3 color(const ray& r, hitable *world, int depth) {
 	if (!world) {
 		std::cout << "Invalid pointer sent to color" << std::endl;
 		exit(-1);
 	}
 
-
 	hit_record rec;
 	if (world->hit(r, 0.001, FLT_MAX, rec)) {
-		vec3 target = rec.p + rec.normal + random_in_unit_sphere();
-		return 0.5 * color(ray(rec.p, target - rec.p), world);
+		ray scattered;
+		vec3 attenuation;
+		if (depth < 50 && rec.mat_ptr->scatter(r, rec, attenuation, scattered)) {
+			return attenuation * color(scattered, world, depth + 1);
+		}
+		else {
+			return vec3(0, 0, 0);
+		}
 	}
 	else {
 		vec3 unit_direction = unit_vector(r.direction());
@@ -46,10 +46,14 @@ int main()
 	ns = 100;
 	std::cout << "P3\n" << nx << " " << ny << "\n255\n";
 
-	hitable* list[2];
-	list[0] = new sphere(vec3(0, 0, -1), 0.5);
-	list[1] = new sphere(vec3(0, -100.5, -1), 100);
-	hitable* world = new hitable_list(list, 2);
+	hitable* list[5];
+	list[0] = new sphere(vec3(0, 0, -1), 0.5, new lambertian(vec3(0.8, 0.3, 0.3)));
+	list[1] = new sphere(vec3(0, -100.5, -1), 100, new lambertian(vec3(0.8, 0.8, 0.0)));
+	list[2] = new sphere(vec3(1, 0, -1), 0.5, new metal(vec3(0.8, 0.6, 0.2), 0.3f));
+	list[3] = new sphere(vec3(-1, 0, -1), 0.5, new dialectric(1.5));
+	list[4] = new sphere(vec3(-1, 0, -1), -0.45, new dialectric(1.5));
+
+	hitable* world = new hitable_list(list, 5);
 	camera cam;
 
 	for (int j = ny - 1; j >= 0; j--) {
@@ -60,8 +64,8 @@ int main()
 				double v = double(j + drand48()) / double(ny);
 				ray r = cam.get_ray(u, v);
 				vec3 p = r.point_at_parameter(2.0);
-				col += color(r, world);
-
+				col += color(r, world, 0);
+				
 			}
 			col /= float(ns);
 			col = vec3(sqrt(col[0]), sqrt(col[1]), sqrt(col[2]));
@@ -72,7 +76,9 @@ int main()
 		}
 	}
 
-	delete(list[0]);
-	delete(list[1]);
-	delete(world);
+	//delete(list[0]);
+	//delete(list[1]);
+	//delete(list[2]);
+	//delete(list[3]);
+	//delete(world);
 }
