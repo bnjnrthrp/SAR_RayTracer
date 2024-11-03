@@ -18,8 +18,9 @@ public:
 	const vec3& direction() const { return dir; }
 	double time() const { return tm; }
 	
-	point3 point_at(double t) const { return orig + t * dir; }
+	point3 at(double t) const { return orig + t * dir; }
 
+private:
 	// Member variables
 	point3 orig;
 	vec3 dir;

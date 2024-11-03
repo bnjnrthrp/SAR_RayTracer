@@ -1,179 +1,153 @@
 #ifndef VEC3_H
 #define VEC3_H
 
-#include <math.h>
-#include <stdlib.h>
+#include <cmath>
 #include <iostream>
 
 class vec3 {
 public:
-	vec3() { e[0] = 0.0; e[1] = 0.0; e[2] = 0.0; }
-	vec3(double e0, double e1, double e2) { e[0] = e0; e[1] = e1; e[2] = e2; }
-	inline double x() const { return e[0]; }
-	inline double y() const { return e[1]; }
-	inline double z() const { return e[2]; }
-	inline double r() const { return e[0]; }
-	inline double g() const { return e[1]; }
-	inline double b() const { return e[2]; }
+    double e[3];
 
-	inline const vec3& operator+() const { return *this; }
-	inline vec3 operator-() const { return vec3(-e[0], -e[1], -e[2]); }
-	inline double operator[](int i) const { return e[i]; }
-	inline double& operator[](int i) { return e[i]; }
+    vec3() : e{ 0,0,0 } {}
+    vec3(double e0, double e1, double e2) : e{ e0, e1, e2 } {}
 
-	inline vec3& operator+=(const vec3& v2);
-	inline vec3& operator-=(const vec3& v2);
-	inline vec3& operator*=(const vec3& v2);
-	inline vec3& operator/=(const vec3& v2);
-	inline vec3& operator*=(const double t);
-	inline vec3& operator/=(const double t);
+    double x() const { return e[0]; }
+    double y() const { return e[1]; }
+    double z() const { return e[2]; }
 
-	inline double length() const { return sqrt(e[0] * e[0] + e[1] * e[1] + e[2] * e[2]);	}
-	inline double squared_length() const {
-		return e[0] * e[0] + e[1] * e[1] + e[2] * e[2];
-	}
-	inline void make_unit_vector();
+    vec3 operator-() const { return vec3(-e[0], -e[1], -e[2]); }
+    double operator[](int i) const { return e[i]; }
+    double& operator[](int i) { return e[i]; }
 
+    vec3& operator+=(const vec3& v) {
+        e[0] += v.e[0];
+        e[1] += v.e[1];
+        e[2] += v.e[2];
+        return *this;
+    }
 
+    vec3& operator*=(double t) {
+        e[0] *= t;
+        e[1] *= t;
+        e[2] *= t;
+        return *this;
+    }
 
+    vec3& operator/=(double t) {
+        return *this *= 1 / t;
+    }
 
-	double e[3];
+    double length() const {
+        return std::sqrt(length_squared());
+    }
+
+    double length_squared() const {
+        return e[0] * e[0] + e[1] * e[1] + e[2] * e[2];
+    }
+
+    /*Returns true if the vector is close to zero in all dimensions*/
+    bool near_zero() const {
+        double s = 1e-8;
+        return (std::fabs(e[0]) < s) && (std::fabs(e[1]) < s) && (std::fabs(e[2]) < s);
+    }
+
+    static vec3 random() {
+        return vec3(random_double(), random_double(), random_double());
+    }
+
+    static vec3 random(double min, double max) {
+        return vec3(random_double(min, max), random_double(min, max), random_double(min, max));
+    }
 };
 
+// point3 is just an alias for vec3, but useful for geometric clarity in the code.
 using point3 = vec3;
 
-inline std::istream& operator>>(std::istream& is, vec3& t) {
-	is >> t.e[0] >> t.e[1] >> t.e[2];
-	return is;
+
+// Vector Utility Functions
+
+inline std::ostream& operator<<(std::ostream& out, const vec3& v) {
+    return out << v.e[0] << ' ' << v.e[1] << ' ' << v.e[2];
 }
 
-inline std::ostream& operator<<(std::ostream& os, vec3& t) {
-	os << t.e[0] << " " << t.e[1] << " " << t.e[2];
-	return os;
+inline vec3 operator+(const vec3& u, const vec3& v) {
+    return vec3(u.e[0] + v.e[0], u.e[1] + v.e[1], u.e[2] + v.e[2]);
 }
 
-inline void vec3::make_unit_vector()
-{
-	double k = 1.0 / sqrt(e[0] * e[0] + e[1] * e[1] + e[2] * e[2]);
-	e[0] *= k; e[1] *= k; e[2] *= k;
+inline vec3 operator-(const vec3& u, const vec3& v) {
+    return vec3(u.e[0] - v.e[0], u.e[1] - v.e[1], u.e[2] - v.e[2]);
 }
 
-inline vec3 operator+(const vec3& v1, const vec3& v2) {
-	return vec3(v1.e[0] + v2.e[0], v1.e[1] + v2.e[1], v1.e[2] + v2.e[2]);
-}
-
-inline vec3 operator-(const vec3& v1, const vec3& v2) {
-	return vec3(v1.e[0] - v2.e[0], v1.e[1] - v2.e[1], v1.e[2] - v2.e[2]);
-}
-
-inline vec3 operator*(const vec3& v1, const vec3& v2) {
-	return vec3(v1.e[0] * v2.e[0], v1.e[1] * v2.e[1], v1.e[2] * v2.e[2]);
-}
-
-inline vec3 operator/(const vec3& v1, const vec3& v2) {
-	return vec3(v1.e[0] / v2.e[0], v1.e[1] / v2.e[1], v1.e[2] / v2.e[2]);
+inline vec3 operator*(const vec3& u, const vec3& v) {
+    return vec3(u.e[0] * v.e[0], u.e[1] * v.e[1], u.e[2] * v.e[2]);
 }
 
 inline vec3 operator*(double t, const vec3& v) {
-	return vec3(t * v.e[0], t * v.e[1], t * v.e[2]);
+    return vec3(t * v.e[0], t * v.e[1], t * v.e[2]);
 }
 
 inline vec3 operator*(const vec3& v, double t) {
-	return vec3(t * v.e[0], t * v.e[1], t * v.e[2]);
+    return t * v;
 }
 
 inline vec3 operator/(const vec3& v, double t) {
-	return vec3(v.e[0] / t, v.e[1] / t, v.e[2] / t);
+    return (1 / t) * v;
 }
 
-inline double dot(const vec3& v1, const vec3& v2) {
-	return v1.e[0] * v2.e[0] + v1.e[1] * v2.e[1] + v1.e[2] * v2.e[2];
+inline double dot(const vec3& u, const vec3& v) {
+    return u.e[0] * v.e[0]
+        + u.e[1] * v.e[1]
+        + u.e[2] * v.e[2];
 }
 
-inline vec3 cross(const vec3& v1, const vec3& v2) {
-	return vec3((v1.e[1] * v2.e[2] - v1.e[2] * v2.e[1]),
-		(-(v1.e[0] * v2.e[2] - v1.e[2] * v2.e[0])),
-		(v1.e[0] * v2.e[1] - v1.e[1] * v2.e[0]));
+inline vec3 cross(const vec3& u, const vec3& v) {
+    return vec3(u.e[1] * v.e[2] - u.e[2] * v.e[1],
+        u.e[2] * v.e[0] - u.e[0] * v.e[2],
+        u.e[0] * v.e[1] - u.e[1] * v.e[0]);
 }
 
-inline vec3& vec3::operator+=(const vec3& v2)
-{
-	e[0] += v2.e[0];
-	e[1] += v2.e[1];
-	e[2] += v2.e[2];
-	return *this;
+inline vec3 unit_vector(const vec3& v) {
+    return v / v.length();
 }
 
-inline vec3& vec3::operator-=(const vec3& v2)
-{
-	e[0] -= v2.e[0];
-	e[1] -= v2.e[1];
-	e[2] -= v2.e[2];
-	return *this;
+inline void make_unit_vector(vec3& v) {
+    v / v.length();
 }
 
-inline vec3& vec3::operator*=(const vec3& v2)
-{
-	e[0] *= v2.e[0];
-	e[1] *= v2.e[1];
-	e[2] *= v2.e[2];
-	return *this;
+inline vec3 random_in_unit_disk() {
+    while (true) {
+        auto p = vec3(random_double(-1, 1), random_double(-1, 1), 0);
+        if (p.length_squared() < 1)
+            return p;
+    }
 }
 
-inline vec3& vec3::operator/=(const vec3& v2)
-{
-	e[0] /= v2.e[0];
-	e[1] /= v2.e[1];
-	e[2] /= v2.e[2];
-	return *this;
+inline vec3 random_unit_vector() {
+    while (true) {
+        vec3 p = vec3::random(-1, 1);
+        double lensq = p.length_squared();
+        if (1e-160 < lensq && lensq <= 1)
+            return p / sqrt(lensq);
+    }
 }
 
-inline vec3& vec3::operator*=(const double t)
-{
-	e[0] *= t;
-	e[1] *= t;
-	e[2] *= t;
-	return *this;
+inline vec3 random_on_hemisphere(const vec3& normal) {
+    vec3 on_unit_sphere = random_unit_vector();
+    if (dot(on_unit_sphere, normal) > 0.0) // In the same hemisphere as the normal
+        return on_unit_sphere;
+    else
+        return -on_unit_sphere;
 }
-
-inline vec3& vec3::operator/=(const double t)
-{
-	double k = 1.0 / t;
-	e[0] *= k;
-	e[1] *= k;
-	e[2] *= k;
-	return *this;
-}
-
-inline vec3 unit_vector(vec3 v) {
-	return v / v.length();
-}
-
-
-inline vec3 random_in_unit_sphere() {
-	vec3 p;
-	do {
-		p = 2.0 * vec3(drand48(), drand48(), drand48()) - vec3(1.0, 1.0, 1.0);
-	} while (p.squared_length() >= 1.0);
-	return p;
-}
-
 
 inline vec3 reflect(const vec3& v, const vec3& n) {
-	return v - 2 * dot(v, n) * n;
-};
-
-
-inline bool refract(const vec3& v, const vec3& n, float ni_over_nt, vec3& refracted) {
-	vec3 uv = unit_vector(v);
-	float dt = dot(uv, n);
-	float discriminant = 1.0 - ni_over_nt * ni_over_nt * (1 - dt * dt);
-	if (discriminant > 0) {
-		refracted = ni_over_nt * (uv - n * dt) - n * sqrt(discriminant);
-		return true;
-	}
-	else
-		return false;
+    return v - 2 * dot(v, n) * n;
 }
 
-#endif // VEC3_H
+inline vec3 refract(const vec3& uv, const vec3& n, double etai_over_etat) {
+    double cos_theta = std::fmin(dot(-uv, n), 1.0);
+    vec3 r_out_perp = etai_over_etat * (uv + cos_theta * n);
+    vec3 r_out_parallel = -std::sqrt(std::fabs(1.0 - r_out_perp.length_squared())) * n;
+    return r_out_perp + r_out_parallel;
+}
+
+#endif

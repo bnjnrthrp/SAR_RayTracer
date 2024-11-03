@@ -7,15 +7,15 @@
 #include <cfloat>
 #include <cmath>
 #include <stdlib.h>
-#include "../include/hitable_list.h"
+#include "../include/hittable_list.h"
 #include "../include/sphere.h"
 #include "../include/camera.h"
 #include "../include/material.h"
 
 
 
-vec3 color(const ray& r, hitable *world, int depth);
-vec3 color(const ray& r, hitable *world, int depth) {
+vec3 color(const ray& r, hittable *world, int depth);
+vec3 color(const ray& r, hittable *world, int depth) {
 	if (!world) {
 		std::cout << "Invalid pointer sent to color" << std::endl;
 		exit(-1);
@@ -38,10 +38,10 @@ vec3 color(const ray& r, hitable *world, int depth) {
 		return (1.0 - t) * vec3(1.0, 1.0, 1.0) + t * vec3(0.5, 0.7, 1.0);
 	}
 }
-hitable* random_scene();
-hitable* random_scene() {
+hittable* random_scene();
+hittable* random_scene() {
 	int n = 500;
-	hitable** list = new hitable * [n + 1];
+	hittable** list = new hittable * [n + 1];
 	list[0] = new sphere(vec3(0, -1000, 0), 1000, new lambertian(vec3(0.5, 0.5, 0.5)));
 	int i = 1;
 	for (int a = -11; a < 11; a++) {
@@ -77,7 +77,7 @@ hitable* random_scene() {
 	list[i++] = new sphere(vec3(-4, 1, 0), 1.0, new lambertian(vec3(0.4, 0.2, 0.1)));
 	list[i++] = new sphere(vec3(4, 1, 0), 1.0, new metal(vec3(0.7, 0.6, 0.5), 0.0));
 
-	return new hitable_list(list, i);
+	return new hittable_list(list, i);
 }
 
 
@@ -89,7 +89,7 @@ int main()
 	ny = 100;
 	ns = 100;
 	std::cout << "P3\n" << nx << " " << ny << "\n255\n";
-	hitable* world = random_scene();
+	hittable* world = random_scene();
 
 	vec3 lookfrom(13, 2, 3);
 	vec3 lookat(0, 0, 0);
@@ -99,6 +99,7 @@ int main()
 	camera cam(lookfrom, lookat, vup, 20, float(nx) / float(ny), aperture, dist_to_focus);
 
 	for (int j = ny - 1; j >= 0; j--) {
+		std::clog << "\rScanlines remaining: " << (image_height - j) << ' ' << std::flush;
 		for (int i = 0; i < nx; i++) {
 			vec3 col(0, 0, 0);
 			for (int s = 0; s < ns; s++) {
@@ -117,6 +118,7 @@ int main()
 			std::cout << ir << " " << ig << " " << ib << "\n";
 		}
 	}
+	std::clog << "\rDone.                 \n";
 
 	//delete(list[0]);
 	//delete(list[1]);

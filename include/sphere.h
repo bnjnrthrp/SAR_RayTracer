@@ -1,59 +1,47 @@
 #ifndef SPHERE_H
 #define SPHERE_H
 
-#include <stdlib.h>
-#include "hitable.h"
+#include "hittable.h"
 
 //double drand48(void);
 
-class sphere : public hitable {
-public: 
-	sphere() {}
-	sphere(vec3 cen, double r, material* ptr) : center(cen), radius(r), mat_ptr(ptr) {};
-	virtual bool hit(const ray& r, double t_min, double t_max, hit_record& rec) const;
-	
-	// Members
-	vec3 center;
-	double radius;
-	material* mat_ptr;
+class sphere : public hittable {
+public:
+    sphere(const point3& center, double radius, shared_ptr<material> mat) : center(center), radius(std::fmax(0, radius)), mat(mat) {}
+
+    bool hit(const ray& r, interval ray_t, hit_record& rec) const override {
+        vec3 oc = center - r.origin();
+        double a = r.direction().length_squared();
+        double h = dot(r.direction(), oc);
+        double c = oc.length_squared() - radius * radius;
+
+        double discriminant = h * h - a * c;
+        if (discriminant < 0)
+            return false;
+
+        double sqrtd = std::sqrt(discriminant);
+
+        // Find the nearest root that lies in the acceptable range.
+        double root = (h - sqrtd) / a;
+        if (!ray_t.surrounds(root)) {
+            root = (h + sqrtd) / a;
+            if (!ray_t.surrounds(root))
+                return false;
+        }
+
+        rec.t = root;
+        rec.p = r.at(rec.t);
+        vec3 outward_normal = (rec.p - center) / radius;
+        rec.set_face_normal(r, outward_normal);
+        rec.mat = mat;
+
+        return true;
+    }
+
+private:
+    point3 center;
+    double radius;
+    shared_ptr<material> mat;
 };
-
-bool sphere::hit(const ray& r, double t_min, double t_max, hit_record& rec) const {
-	vec3 oc = r.origin() - center;
-	double a = dot(r.direction(), r.direction());
-	double b = 2.0 * dot(oc, r.direction());
-	double c = dot(oc, oc) - radius * radius;
-	double discriminant = b * b - 4 * a * c;
-
-	if (discriminant > 0) {
-		double tmp = (-b - sqrt(b * b - 4.0 * a * c)) / (2.0 * a);
-		if (tmp < t_max && tmp > t_min) {
-			rec.t = tmp;
-			rec.p = r.point_at_parameter(rec.t);
-			rec.normal = unit_vector((rec.p - center) / radius);
-			rec.mat_ptr = mat_ptr;
-			return true;
-		}
-
-		tmp = (-b + sqrt(b * b - 4.0 * a * c)) / (2.0 * a);
-		if (tmp < t_max && tmp > t_min) {
-			rec.t = tmp;
-			rec.p = r.point_at_parameter(rec.t);
-			rec.normal = (rec.p - center) / radius;
-			rec.mat_ptr = mat_ptr;
-			return true;
-		}
-	}
-	return false;
-}
-
-
-
-// Uncomment when debugging with VS Code - Windows doesn't have drand48
-//double drand48(void) {
-//	return (double)rand() / (RAND_MAX + 1.0);
-//}
-
-
 
 #endif // SPHERE_H
