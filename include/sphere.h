@@ -2,6 +2,7 @@
 #define SPHERE_H
 
 #include "hittable.h"
+#include "onb.h"
 
 //double drand48(void);
 
@@ -58,6 +59,25 @@ public:
 
     aabb bounding_box() const override { return bbox; }
 
+    double pdf_value(const point3& origin, const vec3& direction) const override {
+        hit_record rec;
+        if (!this->hit(ray(origin, direction), interval(0.001, infinity), rec))
+            return 0;
+
+        double dist_squared = (center.at(0) - origin).length_squared();
+        double cos_theta_max = std::sqrt(1 - radius * radius / dist_squared);
+        double solid_angle = 2.0 * pi * (1 - cos_theta_max);
+
+        return 1.0 / solid_angle;
+    }
+
+    vec3 random(const point3& origin) const override {
+        vec3 direction = center.at(0) - origin;
+        double distance_squared = direction.length_squared();
+        onb uvw(direction);
+        return uvw.transform(random_to_sphere(radius, distance_squared));
+    }
+
 private:
     ray center;
     double radius;
@@ -76,6 +96,18 @@ private:
 
         u = phi / (2 * pi);
         v = theta / pi;
+    }
+
+    static vec3 random_to_sphere(double radius, double distance_squared) {
+        double r1 = random_double();
+        double r2 = random_double();
+        double z = 1 + r2 * (std::sqrt(1 - radius * radius / distance_squared) - 1);
+
+        double phi = 2.0 * pi * r1;
+        double x = std::cos(phi) * std::sqrt(1.0 - z * z);
+        double y = std::sin(phi) * std::sqrt(1.0 - z * z);
+
+        return vec3(x, y, z);
     }
 };
 

@@ -40,6 +40,21 @@ public:
 	
 	aabb bounding_box() const override { return bbox; }
 
+	double pdf_value(const point3& origin, const vec3& direction) const override {
+		double weight = 1.0 / objects.size();
+		double sum = 0.0;
+
+		for (const auto& object : objects)
+			sum += weight * object->pdf_value(origin, direction);
+
+		return sum;
+	}
+
+	vec3 random(const point3& origin) const override {
+		int int_size = int(objects.size());
+		return objects[random_int(0, int_size - 1)]->random(origin);
+	}
+
 private:
 	// Members
 	aabb bbox;
