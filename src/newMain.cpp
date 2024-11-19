@@ -6,6 +6,7 @@
 #include "../include/hittable.h"
 #include "../include/hittable_list.h"
 #include "../include/material.h"
+#include "../include/triangle.h"
 #include "../include/quad.h"
 #include "../include/sphere.h"
 #include "../include/texture.h"

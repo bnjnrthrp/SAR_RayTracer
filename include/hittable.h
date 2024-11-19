@@ -52,10 +52,20 @@ private:
 
 class rotate_y : public hittable {
 public:
-	rotate_y(shared_ptr<hittable> object, double angle) : object(object) {
-		double radians = degrees_to_radians(angle);
-		sin_theta = std::sin(radians);
-		cos_theta = std::cos(radians);
+	//TODO: Add rotations for other axes
+	rotate_y(shared_ptr<hittable> object, double deg_x, double deg_y, double deg_z) : object(object) {
+		double rad_x = degrees_to_radians(deg_x);
+		double rad_y = degrees_to_radians(deg_y);
+		double rad_z = degrees_to_radians(deg_z);
+
+		sin_x = std::sin(rad_x);
+		sin_y = std::sin(rad_y);
+		sin_z = std::sin(rad_z);
+
+		cos_x = std::cos(rad_x);
+		cos_y = std::cos(rad_y);
+		cos_z = std::cos(rad_z);
+
 		bbox = object->bounding_box();
 
 		point3 min(infinity, infinity, infinity);
@@ -68,10 +78,7 @@ public:
 					double y = j * bbox.y.max + (1 - j) * bbox.y.min;
 					double z = k * bbox.z.max + (1 - k) * bbox.z.min;
 
-					double newx = cos_theta * x + sin_theta * z;
-					double newz = -sin_theta * x + cos_theta * z;
-
-					vec3 tester(newx, y, newz);
+					vec3 tester = transform(x, y, z);
 
 					for (int c = 0; c < 3; c++) {
 						min[c] = std::fmin(min[c], tester[c]);
@@ -118,8 +125,53 @@ public:
 	aabb bounding_box() const override { return bbox; }
 private:
 	shared_ptr<hittable> object;
-	double sin_theta;
-	double cos_theta;
+	double sin_x, sin_y, sin_z, cos_x, cos_y, cos_z;
 	aabb bbox;
+
+	vec3 transform(double x, double y, double z) {
+		// rotate x
+		double tmp_x = x;
+		double tmp_y = cos_x * y + sin_x * z;
+		double tmp_z = -sin_x * y + cos_x * z;
+
+		// rotate y axis
+		x = cos_y * tmp_x + sin_y * tmp_z;
+		y = tmp_y;
+		z = -sin_y * tmp_x + cos_y * tmp_z;
+
+		// Rotate about z axis
+		tmp_x = cos_z * x + sin_z * y;
+		tmp_y = -sin_z * x + cos_z * y;
+		tmp_z = z;
+
+		return vec3(tmp_x, tmp_y, tmp_z);
+	}
+
+	vec3 transform(vec3& v) const {
+		return transform(v.x(), v.y(), v.z());
+	}
+
+	vec3 inverse_transform(double x, double y, double z) const {
+		// rotate x
+		double tmp_x = x;
+		double tmp_y = cos_x * y - sin_x * z;
+		double tmp_z = sin_x * y + cos_x * z;
+
+		// rotate y axis
+		x = cos_y * tmp_x - sin_y * tmp_z;
+		y = tmp_y;
+		z = sin_y * tmp_x + cos_y * tmp_z;
+
+		// Rotate about z axis
+		tmp_x = cos_z * x - sin_z * y;
+		tmp_y = sin_z * x + cos_z * y;
+		tmp_z = z;
+
+		return vec3(tmp_x, tmp_y, tmp_z);
+	}
+
+	vec3 inverse_transform(vec3& v) const {
+		return inverse_transform(v.x(), v.y(), v.z());
+	}
 };
 #endif // HITTABLE_H
