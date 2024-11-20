@@ -50,10 +50,10 @@ private:
 	aabb bbox;
 };
 
-class rotate_y : public hittable {
+class rotate_xyz : public hittable {
 public:
 	//TODO: Add rotations for other axes
-	rotate_y(shared_ptr<hittable> object, double deg_x, double deg_y, double deg_z) : object(object) {
+	rotate_xyz(shared_ptr<hittable> object, double deg_x, double deg_y, double deg_z) : object(object) {
 		double rad_x = degrees_to_radians(deg_x);
 		double rad_y = degrees_to_radians(deg_y);
 		double rad_z = degrees_to_radians(deg_z);
@@ -90,34 +90,25 @@ public:
 		bbox = aabb(min, max);
 	}
 	bool hit(const ray& r, interval ray_t, hit_record& rec) const override {
-		point3 origin = point3(
-			(cos_theta * r.origin().x()) - (sin_theta * r.origin().z()),
-			r.origin().y(),
-			(sin_theta * r.origin().x()) + (cos_theta * r.origin().z())
-		);
+		point3 origin = r.origin();
+		origin = inverse_transform(origin);
 
-		vec3 direction = vec3(
-			(cos_theta * r.direction().x()) - (sin_theta * r.direction().z()),
-			r.direction().y(),
-			(sin_theta * r.direction().x()) + (cos_theta * r.direction().z())
-		);
+		vec3 direction = r.direction();
+		direction = inverse_transform(direction);
 
 		ray rotated_r(origin, direction, r.time());
 
 		if (!object->hit(rotated_r, ray_t, rec))
 			return false;
 
-		rec.p = point3(
-			(cos_theta * rec.p.x()) + (sin_theta * rec.p.z()),
-			rec.p.y(),
-			(-sin_theta * rec.p.x()) + (cos_theta * rec.p.z())
-		);
+		point3 p = rec.p;
+		vec3 normal = rec.normal;
 
-		rec.normal = vec3(
-			(cos_theta * rec.normal.x()) + (sin_theta * rec.normal.z()),
-			rec.normal.y(),
-			(-sin_theta * rec.normal.x()) + (cos_theta * rec.normal.z())
-		);
+		p = transform(p);
+		normal = transform(normal);
+
+		rec.p = p;
+		rec.set_face_normal(rotated_r, normal);
 
 		return true;
 	}
@@ -128,7 +119,7 @@ private:
 	double sin_x, sin_y, sin_z, cos_x, cos_y, cos_z;
 	aabb bbox;
 
-	vec3 transform(double x, double y, double z) {
+	vec3 transform(double x, double y, double z) const {
 		// rotate x
 		double tmp_x = x;
 		double tmp_y = cos_x * y + sin_x * z;
@@ -173,5 +164,23 @@ private:
 	vec3 inverse_transform(vec3& v) const {
 		return inverse_transform(v.x(), v.y(), v.z());
 	}
+};
+
+class flip_face : public hittable {
+public:
+	flip_face(shared_ptr<hittable> p) : ptr(p) {}
+	virtual bool hit(const ray& r, interval ray_t, hit_record& rec) const override {
+		if (!ptr->hit(r, ray_t, rec))
+			return false;
+
+		rec.front_face = !rec.front_face;
+		return true;
+	}
+	virtual aabb bounding_box() const override {
+		return ptr->bounding_box();
+	}
+
+public:
+	shared_ptr<hittable> ptr;
 };
 #endif // HITTABLE_H

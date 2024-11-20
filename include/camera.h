@@ -25,6 +25,9 @@ public:
     double defocus_angle        = 0;        // Variation angle of rays through each pixel
     double focus_dist           = 10;       // Distance from camera lookfrom point to plane of perfect focus
 
+    camera() {}
+    camera(vec3 lookfrom, vec3 lookat, vec3 vup, double vfov, double diameter, double distance) : lookfrom(lookfrom), lookat(lookat), vup(vup), vfov(vfov), 
+
 	void render(const hittable& world, const hittable& lights) {
 		initialize();
 

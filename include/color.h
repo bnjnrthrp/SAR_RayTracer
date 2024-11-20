@@ -9,7 +9,12 @@
 #include "interval.h"
 #include "vec3.h"
 
+#include <iostream>
+#include <fstream>
+
 using color = vec3;
+
+std::ofstream fout("image.ppm");
 
 inline double linear_to_gamma(double linear_component) {
 	if (linear_component > 0)
@@ -40,6 +45,21 @@ void write_color(std::ostream& out, const color& pixel_color) {
 
 	// Write out the pixel color components.
 	out << rbyte << ' ' << gbyte << ' ' << bbyte << '\n';
+}
+
+void write_image(uint8_t* image, int nx, int ny) {
+	if (!fout.is_open())
+	{
+		std::cerr << "FILE NOT OPENED" << std::endl;
+	}
+	fout << "P3\n" << nx << " " << ny << "\n255\n";
+	for (int j = ny - 1; j >= 0; j--) {
+		for (int i = 0; i < nx; ++i) {
+			fout << static_cast<int>(image[3 * (j * nx + i) + 0]) << ' ';
+			fout << static_cast<int>(image[3 * (j * nx + i) + 1]) << ' ';
+			fout << static_cast<int>(image[3 * (j * nx + i) + 2]) << '\n';
+		}
+	}
 }
 
 #endif // COLOR_H

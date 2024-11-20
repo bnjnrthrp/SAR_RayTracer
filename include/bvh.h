@@ -9,6 +9,7 @@
 
 class bvh_node : public hittable {
 public:
+	bvh_node() {};
 	bvh_node(hittable_list list) : bvh_node(list.objects, 0, list.objects.size()) {}
 	bvh_node(std::vector<shared_ptr<hittable>>& objects, size_t start, size_t end) {
 		bbox = aabb::empty;

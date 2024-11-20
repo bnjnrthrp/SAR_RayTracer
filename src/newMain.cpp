@@ -1,5 +1,8 @@
-#include "../include/common.h"
+#include <functional>
+#include <iostream>
+#include <thread>
 
+#include "../include/common.h"
 #include "../include/bvh.h"
 #include "../include/camera.h"
 #include "../include/constant_medium.h"
@@ -9,7 +12,10 @@
 #include "../include/triangle.h"
 #include "../include/quad.h"
 #include "../include/sphere.h"
+#include "../include/model.h"
 #include "../include/texture.h"
+#include <chrono>
+#include <ctime>
 
 
 /*
@@ -242,12 +248,12 @@ void cornell_box() {
 
     // Normal box
     shared_ptr<hittable> box1 = box(point3(0, 0, 0), point3(165, 330, 165), white);
-    box1 = make_shared<rotate_y>(box1, 15);
+    box1 = make_shared<rotate_xyz>(box1, 0, 15, 0);
     box1 = make_shared<translate>(box1, vec3(265, 0, 295));
     world.add(box1);
 
     /*shared_ptr<hittable> box2 = box(point3(0, 0, 0), point3(165, 165, 165), white);
-    box2 = make_shared<rotate_y>(box2, -18);
+    box2 = make_shared<rotate_xyz>(box1, 0, -18, 0);
     box2 = make_shared<translate>(box2, vec3(130, 0, 65));
     world.add(box2);*/
 
@@ -294,11 +300,11 @@ void cornell_smoke() {
     world.add(make_shared<quad>(point3(0, 0, 555), vec3(555, 0, 0), vec3(0, 555, 0), white));
 
     shared_ptr<hittable> box1 = box(point3(0, 0, 0), point3(165, 330, 165), white);
-    box1 = make_shared<rotate_y>(box1, 15);
+    box1 = make_shared<rotate_xyz>(box1, 0, 15, 0);
     box1 = make_shared<translate>(box1, vec3(265, 0, 295));
 
     shared_ptr<hittable> box2 = box(point3(0, 0, 0), point3(165, 165, 165), white);
-    box2 = make_shared<rotate_y>(box2, -18);
+    box2 = make_shared<rotate_xyz>(box1, 0, -18, 0);
     box2 = make_shared<translate>(box2, vec3(130, 0, 65));
 
 
@@ -384,8 +390,8 @@ void final_scene(int image_width, int samples_per_pixel, int max_depth) {
     }
 
     world.add(make_shared<translate>(
-        make_shared<rotate_y>(
-            make_shared<bvh_node>(boxes2), 15),
+        make_shared<rotate_xyz>(
+            make_shared<bvh_node>(boxes2), 0, 15, 0),
         vec3(-100, 270, 395)
     )
     );
@@ -413,8 +419,49 @@ void final_scene(int image_width, int samples_per_pixel, int max_depth) {
     cam.render(world, lights);
 }
 
+void simple_triangle() {
+    hittable_list world;
+
+    auto red = make_shared<lambertian>(color(.65, .05, .05));
+    auto white = make_shared<lambertian>(color(.73, .73, .73));
+    auto green = make_shared<lambertian>(color(.12, .45, .15));
+    auto light = make_shared<diffuse_light>(color(7, 7, 7));
+
+    world.add(make_shared<quad>(point3(555, 0, 0), vec3(0, 555, 0), vec3(0, 0, 555), green));
+    world.add(make_shared<quad>(point3(0, 0, 0), vec3(0, 555, 0), vec3(0, 0, 555), red));
+    world.add(make_shared<quad>(point3(113, 554, 127), vec3(330, 0, 0), vec3(0, 0, 305), light));
+    world.add(make_shared<quad>(point3(0, 555, 0), vec3(555, 0, 0), vec3(0, 0, 555), white));
+    world.add(make_shared<quad>(point3(0, 0, 0), vec3(555, 0, 0), vec3(0, 0, 555), white));
+    world.add(make_shared<quad>(point3(0, 0, 555), vec3(555, 0, 0), vec3(0, 555, 0), white));
+
+    world.add(make_shared<triangle>(vec3(265, 100, 295), vec3(265, 200, 350), vec3(300, 100, 295), green));
+    world.add(make_shared<triangle>(vec3(165, 70, 150), vec3(200, 70, 250), vec3(180, 140, 150), red));
+    
+    // Light Sources
+    auto empty_material = shared_ptr<material>();
+    hittable_list lights;
+    lights.add(make_shared<quad>(point3(343, 554, 332), vec3(-130, 0, 0), vec3(0, 0, -105), empty_material));
+
+    camera cam;
+
+    cam.aspect_ratio = 1.0;
+    cam.image_width = 600;
+    cam.samples_per_pixel = 50;
+    cam.max_depth = 50;
+    cam.background = color(0, 0, 0);
+
+    cam.vfov = 40;
+    cam.lookfrom = point3(278, 278, -800);
+    cam.lookat = point3(278, 278, 0);
+    cam.vup = vec3(0, 1, 0);
+
+    cam.defocus_angle = 0;
+
+    cam.render(world, lights);
+}
+
 int main() {
-    switch (7) {
+    switch (10) {
     //case 1: bouncing_spheres();  break;
     //case 2: checkered_spheres(); break;
     //case 3: earth(); break;
@@ -424,6 +471,7 @@ int main() {
     case 7: cornell_box(); break;
     case 8: cornell_smoke(); break;
     case 9: final_scene(800, 10000, 40); break;
+    case 10: simple_triangle(); break;
     default: final_scene(400, 250, 4); break;
     }
 }
