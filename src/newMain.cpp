@@ -14,8 +14,7 @@
 #include "../include/sphere.h"
 #include "../include/model.h"
 #include "../include/texture.h"
-#include <chrono>
-#include <ctime>
+#include "../include/obj_loader.h"
 
 
 /*
@@ -424,8 +423,8 @@ void simple_triangle() {
 
     auto red = make_shared<lambertian>(color(.65, .05, .05));
     auto white = make_shared<lambertian>(color(.73, .73, .73));
-    auto green = make_shared<lambertian>(color(.12, .45, .15));
     auto light = make_shared<diffuse_light>(color(7, 7, 7));
+    auto green = make_shared<lambertian>(color(.12, .45, .15));
 
     world.add(make_shared<quad>(point3(555, 0, 0), vec3(0, 555, 0), vec3(0, 0, 555), green));
     world.add(make_shared<quad>(point3(0, 0, 0), vec3(0, 555, 0), vec3(0, 0, 555), red));
@@ -434,9 +433,12 @@ void simple_triangle() {
     world.add(make_shared<quad>(point3(0, 0, 0), vec3(555, 0, 0), vec3(0, 0, 555), white));
     world.add(make_shared<quad>(point3(0, 0, 555), vec3(555, 0, 0), vec3(0, 555, 0), white));
 
-    world.add(make_shared<triangle>(vec3(265, 100, 295), vec3(265, 200, 350), vec3(300, 100, 295), green));
-    world.add(make_shared<triangle>(vec3(165, 70, 150), vec3(200, 70, 250), vec3(180, 140, 150), red));
-    
+    world.add(make_shared<triangle>(point3(265, 100, 295),  point3(300, 100, 295), point3(265, 200, 350), green));
+    world.add(make_shared<triangle>(point3(100, 100, 150), point3(550, 100, 550), point3(250, 400, 250), red));
+    /*triangle simple(point3(100, 100, 150), point3(550, 100, 550), point3(250, 400, 250), red);
+    vec3 dummy(1, 1, 1);
+    std::clog << "Simple triangle \n";
+    simple.print(std::clog, dummy, dummy, 1.0);*/
     // Light Sources
     auto empty_material = shared_ptr<material>();
     hittable_list lights;
@@ -446,7 +448,47 @@ void simple_triangle() {
 
     cam.aspect_ratio = 1.0;
     cam.image_width = 600;
-    cam.samples_per_pixel = 50;
+    cam.samples_per_pixel = 10;
+    cam.max_depth = 50;
+    cam.background = color(0, 0, 0);
+
+    cam.vfov = 40;
+    cam.lookfrom = point3(278, 278, -800);
+    cam.lookat = point3(278, 278, 0);
+    cam.vup = vec3(0, 1, 0);
+
+    cam.defocus_angle = 0;
+
+    cam.render(world, lights);
+}
+
+void backpack() {
+    hittable_list world;
+
+    auto red = make_shared<lambertian>(color(.65, .05, .05));
+    auto white = make_shared<lambertian>(color(.73, .73, .73));
+    auto light = make_shared<diffuse_light>(color(7, 7, 7));
+    auto green = make_shared<lambertian>(color(.12, .45, .15));
+
+    world.add(make_shared<quad>(point3(555, 0, 0), vec3(0, 555, 0), vec3(0, 0, 555), green));
+    world.add(make_shared<quad>(point3(0, 0, 0), vec3(0, 555, 0), vec3(0, 0, 555), red));
+    world.add(make_shared<quad>(point3(113, 554, 127), vec3(330, 0, 0), vec3(0, 0, 305), light));
+    world.add(make_shared<quad>(point3(0, 555, 0), vec3(555, 0, 0), vec3(0, 0, 555), white));
+    world.add(make_shared<quad>(point3(0, 0, 0), vec3(555, 0, 0), vec3(0, 0, 555), white));
+    world.add(make_shared<quad>(point3(0, 0, 555), vec3(555, 0, 0), vec3(0, 555, 0), white));
+
+    
+
+
+    auto empty_material = shared_ptr<material>();
+    hittable_list lights;
+    lights.add(make_shared<quad>(point3(343, 554, 332), vec3(-130, 0, 0), vec3(0, 0, -105), empty_material));
+
+    camera cam;
+
+    cam.aspect_ratio = 1.0;
+    cam.image_width = 600;
+    cam.samples_per_pixel = 10;
     cam.max_depth = 50;
     cam.background = color(0, 0, 0);
 
@@ -472,6 +514,7 @@ int main() {
     case 8: cornell_smoke(); break;
     case 9: final_scene(800, 10000, 40); break;
     case 10: simple_triangle(); break;
+    case 11: backpack(); break;
     default: final_scene(400, 250, 4); break;
     }
 }

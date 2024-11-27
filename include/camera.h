@@ -9,6 +9,14 @@
 #include "pdf.h"
 #include "material.h"
 
+int tri_hits = 0;
+int quad_hits = 0;
+int tri_aabb_hits = 0;
+int tri_parallel = 0;
+int tri_intersection_behind = 0;
+int tri_barycentric = 0;
+int tri_beyond = 0;
+
 class camera {
 public: 
 	double  aspect_ratio        = 1.0;      // Ratio of image width over height
@@ -24,9 +32,6 @@ public:
 
     double defocus_angle        = 0;        // Variation angle of rays through each pixel
     double focus_dist           = 10;       // Distance from camera lookfrom point to plane of perfect focus
-
-    camera() {}
-    camera(vec3 lookfrom, vec3 lookat, vec3 vup, double vfov, double diameter, double distance) : lookfrom(lookfrom), lookat(lookat), vup(vup), vfov(vfov), 
 
 	void render(const hittable& world, const hittable& lights) {
 		initialize();
@@ -46,7 +51,29 @@ public:
 				write_color(std::cout, pixel_samples_scale * pixel_color);
 			}
 		}
+
+        /*for (int j = image_height / 2.0 - 3; j < image_height / 2.0 + 3; j++) {
+            std::clog << "\rScanlines remaining: " << (image_height - j) << ' ' << std::flush;
+            for (int i = image_width / 2.0 - 3; i < image_width / 2.0 + 3; i++) {
+                color pixel_color(0.0, 0.0, 0.0);
+                for (int s_j = 0; s_j < sqrt_spp; s_j++) {
+                    for (int s_i = 0; s_i < sqrt_spp; s_i++) {
+                        ray r = get_ray(i, j, s_i, s_j);
+                        pixel_color += ray_color(r, max_depth, world, lights);
+                    }
+                }
+                write_color(std::cout, pixel_samples_scale * pixel_color);
+            }
+        }
+        std::clog << "Triangle hits: " << tri_hits << "\n";
+        std::clog << "Quad hits: " << quad_hits << "\n";
+        std::clog << "Tri bbox hits: " << tri_aabb_hits << "\n";
+        std::clog << "Tri parallel: " << tri_parallel<< "\n";
+        std::clog << "Tri intersection beyond: " << tri_intersection_behind<< "\n";
+        std::clog << "Tri barycentric: " << tri_barycentric<< "\n";
+        std::clog << "Tri beyond: " << tri_beyond << "\n";*/
 		std::clog << "\rDone.                 \n";
+        
 	}
 private:
     int    image_height;            // Rendered image height

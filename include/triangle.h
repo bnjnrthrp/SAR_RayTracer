@@ -3,53 +3,76 @@
 
 #include "hittable.h"
 #include "hittable_list.h"
+#include <iostream>
+
+extern int tri_hits;
+extern int tri_aabb_hits;
+extern int tri_parallel;
+extern int tri_intersection_behind;
+extern int tri_barycentric;
+extern int tri_beyond;
 
 class triangle : public hittable {
 public:
+	triangle() {}
 	// Constructor assumes CCW triangle winding
-	triangle(vec3 a, vec3 b, vec3 c, std::shared_ptr<material> mat) : a(a), b(b), c(c), mat(mat) {
-		area = cross(b - a, c - a).length();
-		normal = unit_vector(cross(b - a, c - a));
+	triangle(vec3 v0, vec3 v1, vec3 v2, std::shared_ptr<material> mat) : v0(v0), v1(v1), v2(v2), mat(mat) {
+		area = cross(v1 - v0, v2 - v0).length();
+		normal = unit_vector(cross(v1 - v0, v2 - v0));
 	}
 	void setuv(vec3 uv1, vec3 uv2, vec3 uv3) {
-		a_uv = uv1;
-		b_uv = uv2;
-		c_uv = uv3;
+		v0_uv = uv1;
+		v1_uv = uv2;
+		v2_uv = uv3;
 	}
 
 	bool hit(const ray& r, interval ray_t, hit_record& rec) const override {
+		tri_aabb_hits++;
 		// Moller Trumbore intersection
-		const float EPSILON = 1e-8;
+		const float EPSILON = 0.000001;
 
-		vec3 edge1 = b - a;
-		vec3 edge2 = c - a;
-		vec3 ray_cross_edge2 = cross(r.direction(), edge2);
-		double determinant = dot(edge1, ray_cross_edge2);
-
-		// If ray is parallel to triangle, ray misses
-		if (fabs(determinant) < EPSILON)
-			return false;
+		vec3 edge1 = v1 - v0;
+		vec3 edge2 = v2 - v0;
+		vec3 pvec = cross(r.direction(), edge2);
+		double determinant = dot(edge1, pvec);
 
 		double inv_determinant = 1.0 / determinant;
-		vec3 triangle_ray = r.origin() - a;
-		double u = inv_determinant * dot(triangle_ray, ray_cross_edge2);
+		vec3 tvec = r.origin() - v0;
+		vec3 qvec = cross(tvec, edge1);
+		// If ray is parallel to triangle, ray misses
+		if (determinant > -EPSILON && determinant < EPSILON)
+		{
+			tri_parallel++;
+			print(std::clog, pvec, tvec, determinant);
+			return false;
+		}
+
+		double u = dot(tvec, pvec) * inv_determinant;
 
 		// Intersection is behind origin or beyond the current known intersection
 		if ((u < 0.0 && std::fabs(u) > EPSILON) || (u > 1.0 && fabs(u - 1.0) > EPSILON))
+		{
+			tri_intersection_behind++;
 			return false;
+		}
 
-		vec3 triangle_ray_cross_edge1 = cross(triangle_ray, edge1);
-		double v = inv_determinant * dot(r.direction(), triangle_ray_cross_edge1);
+		double v = dot(r.direction(), qvec) * inv_determinant;
 
 		// Check barycentric coordinates
-		if ((v < 0.0 && std::fabs(v) > EPSILON) || (v + u > 1.0 && fabs(u + v - 1.0) > EPSILON))
+		if ((v < 0.0 && std::fabs(v) > EPSILON) || (v + u > 1.0 && std::fabs(u + v - 1.0) > EPSILON))
+		{
+			tri_barycentric++;
 			return false;
+		}
 
-		double t = inv_determinant * dot(edge2, triangle_ray_cross_edge1);
+		double t = dot(edge2, qvec) * inv_determinant;
 
 		// Intersection beyond current t
 		if (!ray_t.contains(t))
+		{
+			tri_beyond++;
 			return false;
+		}
 
 		// Hit
 		rec.set_face_normal(r, normal);
@@ -63,9 +86,9 @@ public:
 	}
 
 	aabb bounding_box() const override {
-		interval x(std::fmin(std::fmin(a[0], b[0]), c[0]), std::fmax(std::fmax(a[0], b[0]), c[0]));
-		interval y(std::fmin(std::fmin(a[1], b[1]), c[1]), std::fmax(std::fmax(a[1], b[1]), c[1]));
-		interval z(std::fmin(std::fmin(a[2], b[2]), c[2]), std::fmax(std::fmax(a[2], b[2]), c[2]));
+		interval x(std::fmin(std::fmin(v0[0], v1[0]), v2[0]), std::fmax(std::fmax(v0[0], v1[0]), v2[0]));
+		interval y(std::fmin(std::fmin(v0[1], v1[1]), v2[1]), std::fmax(std::fmax(v0[1], v1[1]), v2[1]));
+		interval z(std::fmin(std::fmin(v0[2], v1[2]), v2[2]), std::fmax(std::fmax(v0[2], v1[2]), v2[2]));
 		return aabb(x, y, z);
 	}
 
@@ -83,20 +106,31 @@ public:
 	virtual vec3 random(const vec3& origin) const override {
 		double r1 = random_double();
 		double r2 = random_double() * r1;
-		vec3 random_point = a + r1 * (b - a) + r2 * (c - b);
+		vec3 random_point = v0 + r1 * (v1 - v0) + r2 * (v2 - v1);
 		return random_point - origin;
 	}
 
+	void print(std::ostream& out, vec3& pvec, vec3& tvec, double determinant) const {
+		// Write out the pixel color components.
+		out << "vertices: (" << v0 << ", " << v1 << ", " << v2 << ")" << '\n';
+		out << "normal: (" << normal[0] << ", " << normal[1] << ", " << normal[2] << ")" << '\n';
+		out << "pvec: (" << pvec[0] << ", " << pvec[1] << ", " << pvec[2] << ")" << '\n';
+		out << "tvec: (" << tvec[0] << ", " << tvec[1] << ", " << tvec[2] << ")" << '\n';
+		out << "determinant: " << determinant << '\n';
+
+
+	}
+
 private:
-	vec3 a, b, c;
-	vec3 a_uv, b_uv, c_uv;
+	vec3 v0, v1, v2;
+	vec3 v0_uv, v1_uv, v2_uv;
 	shared_ptr<material> mat;
 	double area;
 	aabb bbox;
 	vec3 normal;
 
 	void triangle_uv(const vec3& p, double& u, double& v) const {
-		vec3 d(u * a_uv + v * b_uv + (1 - u - v) * c_uv);
+		vec3 d(u * v0_uv + v * v1_uv + (1 - u - v) * v2_uv);
 		u = d[0];
 		v = d[1];
 	}

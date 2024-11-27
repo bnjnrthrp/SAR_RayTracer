@@ -4,6 +4,8 @@
 #include "hittable.h"
 #include "hittable_list.h"
 
+extern int quad_hits;
+
 class quad : public hittable {
 public: 
 	quad(const point3& Q, const vec3& u, const vec3& v, shared_ptr<material> mat) : Q(Q), u(u), v(v), mat(mat) 
@@ -46,6 +48,7 @@ public:
 		if (!is_interior(alpha, beta, rec))
 			return false;
 
+		quad_hits++;
 		rec.t = t;
 		rec.p = intersection;
 		rec.mat = mat;

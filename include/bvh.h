@@ -11,6 +11,7 @@ class bvh_node : public hittable {
 public:
 	bvh_node() {};
 	bvh_node(hittable_list list) : bvh_node(list.objects, 0, list.objects.size()) {}
+	bvh_node(hittable_list list, size_t start, size_t end) : bvh_node(list.objects, start, end) {}
 	bvh_node(std::vector<shared_ptr<hittable>>& objects, size_t start, size_t end) {
 		bbox = aabb::empty;
 		for (size_t object_index = start; object_index < end; object_index++)
@@ -39,6 +40,10 @@ public:
 			right = make_shared<bvh_node>(objects, mid, end);
 		}
 	}
+
+	
+
+
 	bool hit(const ray& r, interval ray_t, hit_record& rec) const override {
 		if (!bbox.hit(r, ray_t))
 			return false;

@@ -78,6 +78,28 @@ private:
     double fuzz;
 };
 
+class glossy : public material {
+public:
+    // Fuzz texture interpreted as the magnitude of the fuzz texture.
+    glossy(shared_ptr<texture>& a, shared_ptr<texture>& f) : albedo(a), fuzz(f) {}
+
+    virtual bool scatter(
+        const ray& r_in, const hit_record& rec, scatter_record& srec
+    ) const override {
+        vec3 reflected = reflect(unit_vector(r_in.direction()), rec.normal);
+        srec.attenuation = albedo->value(rec.u, rec.v, rec.p);
+
+        srec.skip_pdf = true;
+        double fuzz_factor = (fuzz->value(rec.u, rec.v, rec.p)).length();
+        srec.skip_pdf_ray = ray(rec.p, reflected + fuzz_factor * random_on_unit_sphere(), r_in.time());
+
+        srec.pdf_ptr = 0;
+        return true;
+    }
+public:
+    shared_ptr<texture> albedo, fuzz;
+};
+
 class dielectric : public material {
 public:
     dielectric(double refraction_index) : refraction_index(refraction_index) {}
@@ -158,6 +180,94 @@ public:
 
 private: 
     shared_ptr<texture> tex;
+};
+
+
+// See https://people.sc.fsu.edu/~jburkardt/data/mtl/mtl.html
+// The MTL format is based on the Phong shading model, so this uses a bit of reinterpretation
+// See https://www.scratchapixel.com/lessons/3d-basic-rendering/phong-shader-BRDF , 
+// and https://www.psychopy.org/api/visual/phongmaterial.html , and http://vr.cs.uiuc.edu/node198.html
+// There are a few properties, which we allow to vary based on textures: 
+// diffuse color: albedo for lambertian 
+// specular color: albedo for metal
+// emissive color: emissive :)
+//
+// sharpness map: remapped to fuzz := 1-log_10(sharpness)/4, sharpness clamped to [1, 10000]
+//
+class mtl_material : public material {
+public:
+    mtl_material(
+        shared_ptr<texture> diffuse_a,
+        shared_ptr<texture> specular_a,
+        shared_ptr<texture> emissive_a,
+        shared_ptr<texture> transparency_map,
+        shared_ptr<texture> sharpness_map,
+        int illum) :
+        emissive_text(emissive_a),
+        diffuse_text(diffuse_a),
+        specular_text(specular_a),
+        transparency_text(transparency_map),
+        roughness_text(make_shared<roughness_from_sharpness_texture>(sharpness_map, 1, 10000))
+    {
+        diffuse_mat = make_shared<lambertian>(diffuse_text);
+        specular_mat = make_shared<glossy>(specular_text, roughness_text);
+        emissive_mat = make_shared<diffuse_light>(emissive_text);
+    }
+
+    virtual bool scatter(
+        const ray& ray_in, const hit_record& rec, scatter_record& srec
+    ) const override {
+        double transp_prob = transparency_prob(rec.u, rec.v, rec.p);
+        if (transp_prob > random_double()) {
+
+            srec.attenuation = transparency_text->value(rec.u, rec.v, rec.p);
+            srec.skip_pdf = true;
+            // Continue in the same direction, starting from hitpoint
+            srec.skip_pdf_ray = ray(rec.p, ray_in.direction(), ray_in.time());
+
+            return false;
+        }
+        return choose_mat(rec.u, rec.v, rec.p)->scatter(ray_in, rec, srec);
+    }
+
+    virtual color emitted(
+        const ray& r_in, const hit_record& rec, double u, double v, const point3& p
+    ) const override {
+        return emissive_mat->emitted(r_in, rec, u, v, p);
+    }
+
+    virtual double scattering_pdf(
+        const ray& r_in, const hit_record& rec, const ray& scattered) const override {
+        // We don't need to care about the transparent case, this only integrates over scattered rays (note specular are scatterd, but not diffuse)
+        double diff_prob = diffuse_prob(rec.u, rec.v, rec.p);
+        return diff_prob * (diffuse_mat->scattering_pdf(r_in, rec, scattered))
+            + (1 - diff_prob) * specular_mat->scattering_pdf(r_in, rec, scattered);
+    }
+public:
+    shared_ptr<texture> emissive_text, diffuse_text, specular_text, transparency_text, roughness_text;
+private:
+    shared_ptr<material> emissive_mat, diffuse_mat, specular_mat;
+    inline double transparency_prob(double u, double v, const point3& p) const {
+        double diff = diffuse_text->value(u, v, p).length();
+        double spec = specular_text->value(u, v, p).length();
+        double transp = transparency_text->value(u, v, p).length();
+        return transp / (transp + diff + spec + 0.00001);
+    }
+
+    inline double diffuse_prob(double u, double v, const point3& p) const {
+        double diff = diffuse_text->value(u, v, p).length();
+        double spec = specular_text->value(u, v, p).length();
+        return diff / (diff + spec + 0.00001);
+    }
+
+    inline shared_ptr<material> choose_mat(double u, double v, const point3& p) const {
+        if (diffuse_prob(u, v, p) > random_double()) {
+            return diffuse_mat;
+        }
+        else {
+            return specular_mat;
+        }
+    }
 };
 
 
