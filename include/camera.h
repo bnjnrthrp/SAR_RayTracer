@@ -64,15 +64,16 @@ public:
                 }
                 write_color(std::cout, pixel_samples_scale * pixel_color);
             }
-        }
+        }*/
+        
+		std::clog << "\rDone.                 \n";
         std::clog << "Triangle hits: " << tri_hits << "\n";
         std::clog << "Quad hits: " << quad_hits << "\n";
         std::clog << "Tri bbox hits: " << tri_aabb_hits << "\n";
         std::clog << "Tri parallel: " << tri_parallel<< "\n";
         std::clog << "Tri intersection beyond: " << tri_intersection_behind<< "\n";
         std::clog << "Tri barycentric: " << tri_barycentric<< "\n";
-        std::clog << "Tri beyond: " << tri_beyond << "\n";*/
-		std::clog << "\rDone.                 \n";
+        std::clog << "Tri beyond: " << tri_beyond << "\n";
         
 	}
 private:
@@ -178,6 +179,9 @@ private:
         if (srec.skip_pdf) {
             return srec.attenuation * ray_color(srec.skip_pdf_ray, depth - 1, world, lights);
         }
+
+        // Test first hit
+       /* return color(1, 0, 0);*/
         
         auto light_ptr = make_shared<hittable_pdf>(lights, rec.p);
         mixture_pdf p(light_ptr, srec.pdf_ptr);

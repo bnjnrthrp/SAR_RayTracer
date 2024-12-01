@@ -7,7 +7,7 @@ Original code by Drummersbrother at https://github.com/Drummersbrother/raytracin
 #define OBJ_LOADER_H
 
 #define TINYOBJLOADER_IMPLEMENTATION
-#define TINYOBJLOADER_USE_MAPBOX_EARCUT
+//#define TINYOBJLOADER_USE_MAPBOX_EARCUT
 #define TINYOBJLOADER_USE_DOUBLE
 
 #include "../external/tiny_obj_loader.h"
@@ -72,50 +72,69 @@ shared_ptr<hittable> load_model_from_file(std::string filename, shared_ptr<mater
 
 	hittable_list model_output;
 
-	for (std::size_t s = 0; s < shapes.size(); s++) {
+	std::clog << "Made it to line 75\n";
+
+	for (size_t s = 0; s < shapes.size(); s++) {
 		hittable_list shape_triangles;
 
-		std::size_t index_offset = 0;
-		for (std::size_t f = 0; f < shapes[s].mesh.num_face_vertices.size(); f++) {
+		size_t index_offset = 0;
+		for (size_t f = 0; f < shapes[s].mesh.num_face_vertices.size(); f++) {
 			const int fv = 3; 
-			/*assert(shapes[s].mesh.num_face_vertices[f] == fv);*/
+			assert(shapes[s].mesh.num_face_vertices[f] == fv);
 
 			vec3 tri_v[3];
+			//std::clog << "Made it to line 86\n";
 			vec3 tri_vn[3];
+			//std::clog << "Made it to line 88\n";
 
-			for (std::size_t v = 0; v < 3; v++) {
+			// TODO: Add a check for winding and adjust 
+			
+			// Loop over vertices in the face
+			std::clog << "f = " << f << " of " << shapes[s].mesh.num_face_vertices.size() << "\n";
+			for (size_t v = 0; v < 3; v++) {
 				tinyobj::index_t idx = shapes[s].mesh.indices[index_offset + v];
 				tinyobj::real_t vx = attrib.vertices[3 * std::size_t(idx.vertex_index) + 0];
 				tinyobj::real_t vy = attrib.vertices[3 * std::size_t(idx.vertex_index) + 1];
 				tinyobj::real_t vz = attrib.vertices[3 * std::size_t(idx.vertex_index) + 2];
-
+				//std::clog << "Made it to line 95\n";
+				std::clog << "vx: " << vx << " vy: " << vy << " vz: " << vz << "\n";
 				tri_v[v] = vec3(vx, vy, vz);
 
 				if (idx.normal_index >= 0) {
-					tinyobj::real_t nx = attrib.normals[3 * std::size_t(idx.normal_index) + 0];
-					tinyobj::real_t ny = attrib.normals[3 * std::size_t(idx.normal_index) + 1];
-					tinyobj::real_t nz = attrib.normals[3 * std::size_t(idx.normal_index) + 2];
-
+					tinyobj::real_t nx = attrib.normals[3 * size_t(idx.normal_index) + 0];
+					tinyobj::real_t ny = attrib.normals[3 * size_t(idx.normal_index) + 1];
+					tinyobj::real_t nz = attrib.normals[3 * size_t(idx.normal_index) + 2];
+					std::clog << "nx: " << nx << " ny: " << ny << " nz: " << nz << "\n";
+					//std::clog << "Made it to line 102\n";
 					tri_vn[v] = vec3(nx, ny, nz);
 				}
 				else {
-					assert(0);
+					/*std::clog << "Asserting 0\n";
+					assert(0);*/
+					continue;
 				}
 			}
-
+			//std::clog << "Made it to line 116\n";
 			shared_ptr<material> tri_mat;
 			if (use_mtl_file) {
+				std::clog << "using mtl file\n";
+				std::clog << "use mtl log " << use_mtl_file << "\n";
 				tri_mat = converted_mats[shapes[s].mesh.material_ids[f]];
+				std::clog << "converted mat\n";
 			}
 			else {
+				std::clog << "Not using mtl file\n";
 				tri_mat = model_material;
 			}
 			shape_triangles.add(make_shared<triangle>(
 				tri_v[0], tri_v[1], tri_v[2], tri_mat));
 
+			std::clog << "Assigning triangle (" << tri_v[0] << ", " << tri_v[1] << ", " << tri_v[2] << ")\n";
+			std::clog << "Normals (" << tri_vn[0] << ", " << tri_vn[1] << ", " << tri_vn[2] << ")\n";
+			//std::clog << "Made it to line 119\n";
 			index_offset += fv;
 		}
-
+		std::clog << "Made it to line 132 - complete\n";
 		model_output.add(make_shared<bvh_node>(shape_triangles, 0, 1));
 	}
 

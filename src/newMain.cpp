@@ -248,6 +248,7 @@ void cornell_box() {
     // Normal box
     shared_ptr<hittable> box1 = box(point3(0, 0, 0), point3(165, 330, 165), white);
     box1 = make_shared<rotate_xyz>(box1, 0, 15, 0);
+    box1 = make_shared<scale>(box1, vec3(.5, .5, .5));
     box1 = make_shared<translate>(box1, vec3(265, 0, 295));
     world.add(box1);
 
@@ -462,13 +463,14 @@ void simple_triangle() {
     cam.render(world, lights);
 }
 
-void backpack() {
+void cornell_tetra() {
     hittable_list world;
 
     auto red = make_shared<lambertian>(color(.65, .05, .05));
     auto white = make_shared<lambertian>(color(.73, .73, .73));
     auto light = make_shared<diffuse_light>(color(7, 7, 7));
     auto green = make_shared<lambertian>(color(.12, .45, .15));
+    auto grey = make_shared<lambertian>(color(.5, .5, .5));
 
     world.add(make_shared<quad>(point3(555, 0, 0), vec3(0, 555, 0), vec3(0, 0, 555), green));
     world.add(make_shared<quad>(point3(0, 0, 0), vec3(0, 555, 0), vec3(0, 0, 555), red));
@@ -477,8 +479,36 @@ void backpack() {
     world.add(make_shared<quad>(point3(0, 0, 0), vec3(555, 0, 0), vec3(0, 0, 555), white));
     world.add(make_shared<quad>(point3(0, 0, 555), vec3(555, 0, 0), vec3(0, 555, 0), white));
 
-    
+    /*std::shared_ptr<hittable> tetrahedron = load_model_from_file("./images/tetrahedron.obj", grey, true);
+    shared_ptr<hittable>tetrahedron = make_shared<scale>(tetrahedron, vec3(100, 100, 100), grey);
+    tetrahedron = make_shared<rotate_xyz>(tetrahedron, 0.0, 45.0, 0.0);
+    tetrahedron = make_shared<translate>(tetrahedron, vec3(265, 300, 200));
+    world.add(tetrahedron);*/
 
+
+    //std::shared_ptr<hittable> cube = load_model_from_file("./images/tetrahedron.obj", grey, true);
+    shared_ptr<hittable> cube = tetrahedron(grey);
+    cube = make_shared<scale>(cube, vec3(100, 100, 100));
+    cube = make_shared<rotate_xyz>(cube, 0, 15, 0);
+    cube = make_shared<translate>(cube, vec3(200, 100, 100));
+    world.add(cube);
+
+
+
+    /*std::shared_ptr<hittable> cube2 = load_model_from_file("./images/tetrahedron.obj", green, true);
+    cube2 = make_shared<scale>(cube2, vec3(100, 100, 100));
+    cube2 = make_shared<rotate_xyz>(cube2, 0, 40, 55);
+    cube2 = make_shared<translate>(cube2, vec3(300, 200, 400));
+    world.add(cube2);*/
+
+    std::shared_ptr<hittable> backpack = load_model_from_file("./backpack/backpack.obj", green, true);
+    backpack = make_shared<scale>(backpack, vec3(20, 20, 20));
+    //backpack = make_shared<rotate_xyz>(backpack, 0, 40, 55);
+    backpack = make_shared<translate>(backpack, vec3(400, 300, 200));
+    world.add(backpack);
+
+
+    
 
     auto empty_material = shared_ptr<material>();
     hittable_list lights;
@@ -503,7 +533,7 @@ void backpack() {
 }
 
 int main() {
-    switch (10) {
+    switch (11) {
     //case 1: bouncing_spheres();  break;
     //case 2: checkered_spheres(); break;
     //case 3: earth(); break;
@@ -514,7 +544,7 @@ int main() {
     case 8: cornell_smoke(); break;
     case 9: final_scene(800, 10000, 40); break;
     case 10: simple_triangle(); break;
-    case 11: backpack(); break;
+    case 11: cornell_tetra(); break;
     default: final_scene(400, 250, 4); break;
     }
 }

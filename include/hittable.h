@@ -31,6 +31,34 @@ public:
 	virtual vec3 random(const point3& origin) const { return vec3(1, 0, 0); }
 };
 
+class scale : public hittable {
+public:
+	scale(shared_ptr<hittable> object, const vec3& scale) : object(object), scale_factor(scale) {
+		bbox = object->bounding_box() * scale;
+	}
+
+	bool hit(const ray& r, interval ray_t, hit_record& rec) const override {
+		ray unscaled_r(r.origin() / scale_factor, r.direction() / scale_factor, r.time());
+
+		if (!object->hit(unscaled_r, ray_t, rec))
+			return false;
+
+		vec3 normal = rec.normal;
+
+		rec.p *= scale_factor;
+		rec.set_face_normal(unscaled_r, unit_vector(rec.normal / scale_factor));
+
+		return true;
+	}
+
+	aabb bounding_box() const override { return bbox; }
+
+private:
+	shared_ptr<hittable> object;
+	vec3 scale_factor;
+	aabb bbox;
+};
+
 class translate : public hittable {
 public:
 	translate(shared_ptr<hittable> object, const vec3& offset) : object(object), offset(offset) { bbox = object->bounding_box() + offset; }
@@ -50,9 +78,10 @@ private:
 	aabb bbox;
 };
 
+
+
 class rotate_xyz : public hittable {
 public:
-	//TODO: Add rotations for other axes
 	rotate_xyz(shared_ptr<hittable> object, double deg_x, double deg_y, double deg_z) : object(object) {
 		double rad_x = degrees_to_radians(deg_x);
 		double rad_y = degrees_to_radians(deg_y);
@@ -181,6 +210,21 @@ public:
 	}
 
 public:
+	shared_ptr<hittable> ptr;
+};
+
+class flip_normals : public hittable {
+public: flip_normals(shared_ptr<hittable> p) : ptr(p) {}
+	  virtual bool hit(const ray& r, interval ray_t, hit_record& rec) const override {
+		  if (ptr->hit(r, ray_t, rec)) {
+			  rec.normal = -rec.normal;
+			  return true;
+		  }
+		  else
+			  return false;
+	  }
+	  virtual aabb bounding_box() const override { return ptr->bounding_box(); }
+private:
 	shared_ptr<hittable> ptr;
 };
 #endif // HITTABLE_H

@@ -19,7 +19,10 @@ public:
 	triangle(vec3 v0, vec3 v1, vec3 v2, std::shared_ptr<material> mat) : v0(v0), v1(v1), v2(v2), mat(mat) {
 		area = cross(v1 - v0, v2 - v0).length();
 		normal = unit_vector(cross(v1 - v0, v2 - v0));
+		/*std::clog << "Constructing triangle: ";
+		print(std::clog);*/
 	}
+
 	void setuv(vec3 uv1, vec3 uv2, vec3 uv3) {
 		v0_uv = uv1;
 		v1_uv = uv2;
@@ -29,10 +32,11 @@ public:
 	bool hit(const ray& r, interval ray_t, hit_record& rec) const override {
 		tri_aabb_hits++;
 		// Moller Trumbore intersection
-		const float EPSILON = 0.000001;
+		const float EPSILON = 1e-8;
 
 		vec3 edge1 = v1 - v0;
 		vec3 edge2 = v2 - v0;
+
 		vec3 pvec = cross(r.direction(), edge2);
 		double determinant = dot(edge1, pvec);
 
@@ -43,7 +47,7 @@ public:
 		if (determinant > -EPSILON && determinant < EPSILON)
 		{
 			tri_parallel++;
-			print(std::clog, pvec, tvec, determinant);
+			//print(std::clog, pvec, tvec, determinant);
 			return false;
 		}
 
@@ -75,6 +79,7 @@ public:
 		}
 
 		// Hit
+		tri_hits++;
 		rec.set_face_normal(r, normal);
 		rec.t = t;
 		rec.p = r.at(t);
@@ -110,6 +115,11 @@ public:
 		return random_point - origin;
 	}
 
+	void print(std::ostream& out) {
+		out << "vertices: (" << v0 << ", " << v1 << ", " << v2 << ")" << '\n';
+		out << "normal: (" << normal[0] << ", " << normal[1] << ", " << normal[2] << ")" << '\n';
+	}
+
 	void print(std::ostream& out, vec3& pvec, vec3& tvec, double determinant) const {
 		// Write out the pixel color components.
 		out << "vertices: (" << v0 << ", " << v1 << ", " << v2 << ")" << '\n';
@@ -117,12 +127,11 @@ public:
 		out << "pvec: (" << pvec[0] << ", " << pvec[1] << ", " << pvec[2] << ")" << '\n';
 		out << "tvec: (" << tvec[0] << ", " << tvec[1] << ", " << tvec[2] << ")" << '\n';
 		out << "determinant: " << determinant << '\n';
-
-
 	}
 
 private:
 	vec3 v0, v1, v2;
+	vec3 vn0, vn1, vn2;
 	vec3 v0_uv, v1_uv, v2_uv;
 	shared_ptr<material> mat;
 	double area;
@@ -134,6 +143,22 @@ private:
 		u = d[0];
 		v = d[1];
 	}
+
 };
+
+inline shared_ptr<hittable_list> tetrahedron(shared_ptr<material> mat) {
+	auto sides = make_shared<hittable_list>();
+	
+	point3 v0(-0.5, 0.5, 0.5); // top back left
+	point3 v1(0.5, 0.5, -0.5); // top front right
+	point3 v2(-0.5, -0.5, -0.5); // bottom front left
+	point3 v3(0.5, -0.5, 0.5); // bottom back right
+	sides->add(make_shared<triangle>(v0, v1, v3, mat)); 
+	sides->add(make_shared<triangle>(v1, v0, v2, mat)); 
+	sides->add(make_shared<triangle>(v1, v2, v3, mat)); 
+	sides->add(make_shared<triangle>(v2, v3, v0, mat)); 
+	
+	return sides;
+}
 
 #endif // TRIANGLE_H
