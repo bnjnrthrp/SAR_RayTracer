@@ -19,6 +19,11 @@ public:
 	void clear() { objects.clear(); }
 	void add(shared_ptr<hittable> object) { 
 		objects.push_back(object); 
+
+		/*std::clog << "Combining bboxes: ";
+		bbox.print(std::clog);
+		object->bounding_box().print(std::clog);*/
+
 		bbox = aabb(bbox, object->bounding_box());
 	}
 

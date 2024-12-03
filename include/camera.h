@@ -179,9 +179,6 @@ private:
         if (srec.skip_pdf) {
             return srec.attenuation * ray_color(srec.skip_pdf_ray, depth - 1, world, lights);
         }
-
-        // Test first hit
-       /* return color(1, 0, 0);*/
         
         auto light_ptr = make_shared<hittable_pdf>(lights, rec.p);
         mixture_pdf p(light_ptr, srec.pdf_ptr);

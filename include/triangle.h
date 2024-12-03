@@ -16,11 +16,23 @@ class triangle : public hittable {
 public:
 	triangle() {}
 	// Constructor assumes CCW triangle winding
-	triangle(vec3 v0, vec3 v1, vec3 v2, std::shared_ptr<material> mat) : v0(v0), v1(v1), v2(v2), mat(mat) {
+	triangle(vec3 v0, vec3 v1, vec3 v2, std::shared_ptr<material> mat) : v0(v0), v1(v1), v2(v2), vn0(unit_vector(cross(v1 - v0, v2-v0))), vn1(unit_vector(cross(v2 - v1, v0 - v1))), vn2(unit_vector(cross(v0 - v2, v1 - v2))), mat(mat) {
 		area = cross(v1 - v0, v2 - v0).length();
 		normal = unit_vector(cross(v1 - v0, v2 - v0));
-		/*std::clog << "Constructing triangle: ";
-		print(std::clog);*/
+		
+		/*std::clog << "vertices: " << v0 << v1 << v2 << "\n";
+		std::clog << "normal is " << normal << "\n";
+		std::clog << "vn0 is " << vn0 << "\n";
+		std::clog << "vn1 is " << vn1 << "\n";
+		std::clog << "vn2 is " << vn2 << "\n";*/
+		set_bounding_box();
+	
+		//bounding_box().print(std::clog);
+	}
+	triangle(vec3 v0, vec3 v1, vec3 v2, vec3 vn0, vec3 vn1, vec3 vn2, std::shared_ptr<material> mat) : v0(v0), v1(v1), v2(v2), vn0(vn0), vn1(vn1), vn2(vn2), mat(mat) {
+		area = cross(v1 - v0, v2 - v0).length();
+		normal = unit_vector(cross(v1 - v0, v2 - v0));
+		set_bounding_box();
 	}
 
 	void setuv(vec3 uv1, vec3 uv2, vec3 uv3) {
@@ -90,11 +102,14 @@ public:
 		return true;
 	}
 
-	aabb bounding_box() const override {
+	aabb bounding_box() const override { return bbox; }
+
+	virtual void set_bounding_box()  {
 		interval x(std::fmin(std::fmin(v0[0], v1[0]), v2[0]), std::fmax(std::fmax(v0[0], v1[0]), v2[0]));
 		interval y(std::fmin(std::fmin(v0[1], v1[1]), v2[1]), std::fmax(std::fmax(v0[1], v1[1]), v2[1]));
 		interval z(std::fmin(std::fmin(v0[2], v1[2]), v2[2]), std::fmax(std::fmax(v0[2], v1[2]), v2[2]));
-		return aabb(x, y, z);
+
+		bbox = aabb(x, y, z);
 	}
 
 	virtual double pdf_value(const vec3& origin, const vec3& v) const override {
@@ -102,22 +117,30 @@ public:
 		if (!this->hit(ray(origin, v), interval(0.001, infinity), rec))
 			return 0.0;
 
-		double distance_squared = rec.t * rec.t * v.length_squared();
-		double cosine = fabs(dot(v, rec.normal) / v.length());
+		vec3 R1 = v0 - origin, R2 = v1 - origin, R3 = v2 - origin;
+		double r1 = R1.length(), r2 = R2.length(), r3 = R3.length();
+		double N = dot(R1, cross(R2, R3));
+		double D = r1 * r2 * r3 + dot(R1, R2) * r3 + dot(R1, R3) * r2 + dot(R2, R3) * r3;
 
-		return distance_squared / (cosine * area);
+		double omega = atan2(N, D);
+
+		return 1. / omega;
 	}
 
 	virtual vec3 random(const vec3& origin) const override {
 		double r1 = random_double();
-		double r2 = random_double() * r1;
-		vec3 random_point = v0 + r1 * (v1 - v0) + r2 * (v2 - v1);
-		return random_point - origin;
+		double r2 = random_double();
+		double ca = (1. - sqrt(r1)),
+			cb = sqrt(r1) * (1. - r2),
+			cc = r2 * sqrt(r1);
+		vec3 random_in_triangle = v0 * ca + v1 * cb + v2 * cc;
+		return random_in_triangle - origin;
 	}
 
 	void print(std::ostream& out) {
 		out << "vertices: (" << v0 << ", " << v1 << ", " << v2 << ")" << '\n';
-		out << "normal: (" << normal[0] << ", " << normal[1] << ", " << normal[2] << ")" << '\n';
+		out << "normal: (" << vn0 << ", " << vn1 << ", " << vn2 << ")" << '\n';
+		out << "total normal: (" << normal << ")" << "\n";
 	}
 
 	void print(std::ostream& out, vec3& pvec, vec3& tvec, double determinant) const {

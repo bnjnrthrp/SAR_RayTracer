@@ -413,7 +413,7 @@ void final_scene(int image_width, int samples_per_pixel, int max_depth) {
     cam.lookfrom = point3(478, 278, -600);
     cam.lookat = point3(278, 278, 0);
     cam.vup = vec3(0, 1, 0);
-  
+ 
     cam.defocus_angle = 0;
 
     cam.render(world, lights);
@@ -486,29 +486,86 @@ void cornell_tetra() {
     world.add(tetrahedron);*/
 
 
-    //std::shared_ptr<hittable> cube = load_model_from_file("./images/tetrahedron.obj", grey, true);
-    shared_ptr<hittable> cube = tetrahedron(grey);
-    cube = make_shared<scale>(cube, vec3(100, 100, 100));
+    /*std::shared_ptr<hittable> cube = load_model_from_file("./images/cube.obj", red, true);
     cube = make_shared<rotate_xyz>(cube, 0, 15, 0);
+    cube = make_shared<scale>(cube, vec3(100, 100, 100));
+    cube = make_shared<translate>(cube, vec3(200, 100, 100));
+    world.add(cube);*/
+
+    
+
+    auto backpack = load_model_from_file("./backpack/backpack.obj", green, true);
+   /* std::clog << "\n\n\n\n\n\n\n\n\nBefore adding/after loading\n";
+    backpack->bounding_box().print(std::clog);*/
+  
+    backpack = make_shared<rotate_xyz>(backpack, 0, 40, 55);
+    backpack = make_shared<scale>(backpack, vec3(75, 75, 75));
+    backpack = make_shared<translate>(backpack, vec3(150, 200, 100));
+    world.add(backpack);
+   // std::clog << "\n\n\nAfter loading backpack\n";
+   // backpack->bounding_box().print(std::clog);
+   // world.bounding_box().print(std::clog);
+
+    /*std::shared_ptr<hittable> cube2 = load_model_from_file("./images/tetrahedron.obj", green, true);
+    cube2 = make_shared<rotate_xyz>(cube2, 60, 0, 55);
+    cube2 = make_shared<scale>(cube2, vec3(100, 100, 100));
+    cube2 = make_shared<translate>(cube2, vec3(300, 200, 400));
+    world.add(cube2);*/
+    
+    /*std::clog << "\n\n\nAfter loading tetrahedron\n";
+    world.bounding_box().print(std::clog);*/
+
+    auto empty_material = shared_ptr<material>();
+    hittable_list lights;
+    lights.add(make_shared<quad>(point3(343, 554, 332), vec3(-130, 0, 0), vec3(0, 0, -105), empty_material));
+
+    camera cam;
+
+    cam.aspect_ratio = 1.0;
+    cam.image_width = 600;
+    cam.samples_per_pixel = 50;
+    cam.max_depth = 50;
+    cam.background = color(0, 0, 0);
+
+    cam.vfov = 40;
+    cam.lookfrom = point3(278, 278, -800);
+    cam.lookat = point3(278, 278, 0);
+    cam.vup = vec3(0, 1, 0);
+
+    cam.defocus_angle = 0;
+
+    cam.render(world, lights);
+}
+
+void rungholt() {
+    hittable_list world;
+
+    auto red = make_shared<lambertian>(color(.65, .05, .05));
+    auto white = make_shared<lambertian>(color(.73, .73, .73));
+    auto light = make_shared<diffuse_light>(color(7, 7, 7));
+    auto green = make_shared<lambertian>(color(.12, .45, .15));
+    auto grey = make_shared<lambertian>(color(.5, .5, .5));
+
+    /*world.add(make_shared<quad>(point3(555, 0, 0), vec3(0, 555, 0), vec3(0, 0, 555), green));
+    world.add(make_shared<quad>(point3(0, 0, 0), vec3(0, 555, 0), vec3(0, 0, 555), red));
+    world.add(make_shared<quad>(point3(113, 554, 127), vec3(330, 0, 0), vec3(0, 0, 305), light));
+    world.add(make_shared<quad>(point3(0, 555, 0), vec3(555, 0, 0), vec3(0, 0, 555), white));
+    world.add(make_shared<quad>(point3(0, 0, 0), vec3(555, 0, 0), vec3(0, 0, 555), white));
+    world.add(make_shared<quad>(point3(0, 0, 555), vec3(555, 0, 0), vec3(0, 555, 0), white));*/
+
+    /*std::shared_ptr<hittable> tetrahedron = load_model_from_file("./images/tetrahedron.obj", grey, true);
+    shared_ptr<hittable>tetrahedron = make_shared<scale>(tetrahedron, vec3(100, 100, 100), grey);
+    tetrahedron = make_shared<rotate_xyz>(tetrahedron, 0.0, 45.0, 0.0);
+    tetrahedron = make_shared<translate>(tetrahedron, vec3(265, 300, 200));
+    world.add(tetrahedron);*/
+
+
+    auto cube = load_model_from_file("./rungholt/rungholt.obj", red, true);
+    cube = make_shared<scale>(cube, vec3(100, 100, 100));
     cube = make_shared<translate>(cube, vec3(200, 100, 100));
     world.add(cube);
 
-
-
-    /*std::shared_ptr<hittable> cube2 = load_model_from_file("./images/tetrahedron.obj", green, true);
-    cube2 = make_shared<scale>(cube2, vec3(100, 100, 100));
-    cube2 = make_shared<rotate_xyz>(cube2, 0, 40, 55);
-    cube2 = make_shared<translate>(cube2, vec3(300, 200, 400));
-    world.add(cube2);*/
-
-    std::shared_ptr<hittable> backpack = load_model_from_file("./backpack/backpack.obj", green, true);
-    backpack = make_shared<scale>(backpack, vec3(20, 20, 20));
-    //backpack = make_shared<rotate_xyz>(backpack, 0, 40, 55);
-    backpack = make_shared<translate>(backpack, vec3(400, 300, 200));
-    world.add(backpack);
-
-
-    
+   
 
     auto empty_material = shared_ptr<material>();
     hittable_list lights;
@@ -532,6 +589,72 @@ void cornell_tetra() {
     cam.render(world, lights);
 }
 
+void cornell_SAR() {
+    //hittable_list world;
+    //auto fuzz = make_shared<noise_texture>(4);
+    //auto low_gloss = make_shared<solid_color>(.12, .12, .12);
+    //auto med_gloss = make_shared<solid_color>(.65, .65, .65);
+    //auto high_gloss = make_shared<solid_color>(.9, .9, .9);
+
+    //auto low_glossy = make_shared<glossy>(low_gloss, fuzz);
+    //auto med_glossy = make_shared<glossy>(med_gloss, fuzz);
+    //auto high_glossy = make_shared<glossy>(high_gloss, fuzz);
+    //auto light = make_shared<diffuse_light>(color(7, 7, 7));
+    ////auto absorbant = make_shared<glossy>(color(0, 0, 0), 0);
+
+    //world.add(make_shared<quad>(point3(555, 0, 0), vec3(0, 555, 0), vec3(0, 0, 555), low_glossy));
+    //world.add(make_shared<quad>(point3(0, 0, 0), vec3(0, 555, 0), vec3(0, 0, 555), med_glossy));
+    //world.add(make_shared<quad>(point3(113, 554, 127), vec3(330, 0, 0), vec3(0, 0, 305), light));
+    //world.add(make_shared<quad>(point3(0, 555, 0), vec3(555, 0, 0), vec3(0, 0, 555), high_glossy));
+    //world.add(make_shared<quad>(point3(0, 0, 0), vec3(555, 0, 0), vec3(0, 0, 555), high_glossy));
+    //world.add(make_shared<quad>(point3(0, 0, 555), vec3(555, 0, 0), vec3(0, 555, 0), high_glossy));
+
+    ///*std::shared_ptr<hittable> tetrahedron = load_model_from_file("./images/tetrahedron.obj", grey, true);
+    //shared_ptr<hittable>tetrahedron = make_shared<scale>(tetrahedron, vec3(100, 100, 100), grey);
+    //tetrahedron = make_shared<rotate_xyz>(tetrahedron, 0.0, 45.0, 0.0);
+    //tetrahedron = make_shared<translate>(tetrahedron, vec3(265, 300, 200));
+    //world.add(tetrahedron);*/
+
+
+    ////std::shared_ptr<hittable> cube = load_model_from_file("./images/tetrahedron.obj", grey, true);
+    //shared_ptr<hittable> cube = tetrahedron(low_glossy);
+    //cube = make_shared<scale>(cube, vec3(100, 100, 100));
+    //cube = make_shared<rotate_xyz>(cube, 0, 15, 0);
+    //cube = make_shared<translate>(cube, vec3(200, 100, 100));
+    //world.add(cube);
+
+
+
+    ///*std::shared_ptr<hittable> cube2 = load_model_from_file("./images/tetrahedron.obj", green, true);
+    //cube2 = make_shared<scale>(cube2, vec3(100, 100, 100));
+    //cube2 = make_shared<rotate_xyz>(cube2, 0, 40, 55);
+    //cube2 = make_shared<translate>(cube2, vec3(300, 200, 400));
+    //world.add(cube2);*/
+
+
+    //auto empty_material = shared_ptr<material>();
+    //hittable_list lights;
+    //lights.add(make_shared<quad>(point3(343, 554, 332), vec3(-130, 0, 0), vec3(0, 0, -105), empty_material));
+
+    //camera cam;
+
+    //cam.aspect_ratio = 1.0;
+    //cam.image_width = 600;
+    //cam.samples_per_pixel = 10;
+    //cam.max_depth = 50;
+    //cam.background = color(0, 0, 0);
+
+    //cam.vfov = 40;
+    //cam.lookfrom = point3(278, 278, -800);
+    //cam.lookat = point3(278, 278, 0);
+    //cam.vup = vec3(0, 1, 0);
+
+    //cam.defocus_angle = 0;
+
+    //cam.render(world, lights);
+}
+
+
 int main() {
     switch (11) {
     //case 1: bouncing_spheres();  break;
@@ -545,6 +668,9 @@ int main() {
     case 9: final_scene(800, 10000, 40); break;
     case 10: simple_triangle(); break;
     case 11: cornell_tetra(); break;
+    case 12: rungholt(); break;
+    case 13: cornell_SAR(); break;
+
     default: final_scene(400, 250, 4); break;
     }
 }

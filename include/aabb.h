@@ -1,6 +1,8 @@
 #ifndef AABB_H
 #define AABB_H
 
+#include "../external/tiny_obj_loader.h"
+
 class aabb {
 public:
 	interval x, y, z;
@@ -21,6 +23,33 @@ public:
 		x = interval(box0.x, box1.x);
 		y = interval(box0.y, box1.y);
 		z = interval(box0.z, box1.z);
+	}
+
+	aabb(const std::vector<tinyobj::shape_t>& shapes, const tinyobj::attrib_t& attrib) {
+		point3 v_min(infinity, infinity, infinity);
+		point3 v_max(-infinity, -infinity, -infinity);
+		for (size_t s = 0; s < shapes.size(); s++) {
+			size_t index_offset = 0;
+			for (size_t f = 0; f < shapes[s].mesh.num_face_vertices.size(); f++) {
+				// Iterate through each triangle and pull the max component of each one
+				for (size_t v = 0; v < 3; v++) {
+					tinyobj::index_t idx = shapes[s].mesh.indices[index_offset + v];
+					double vx = attrib.vertices[3 * std::size_t(idx.vertex_index) + 0];
+					double vy = attrib.vertices[3 * std::size_t(idx.vertex_index) + 1];
+					double vz = attrib.vertices[3 * std::size_t(idx.vertex_index) + 2];
+
+					v_min = point3(std::fmin(v_min.x(), vx), std::fmin(v_min.y(), vy), std::fmin(v_min.z(), vz));
+					v_max = point3(std::fmax(v_max.x(), vx), std::fmax(v_max.y(), vy), std::fmax(v_max.z(), vz));
+				} 
+			}
+		}
+	
+		aabb bbox(v_min, v_max);
+		x = bbox.x;
+		y = bbox.y;
+		z = bbox.z;
+
+		pad_to_minimums();
 	}
 
 	const interval& axis_interval(int n) const {
@@ -62,6 +91,13 @@ public:
 			return x.size() > z.size() ? 0 : 2;
 		else
 			return y.size() > z.size() ? 1 : 2;
+	}
+
+	void print(const std::ostream&) {
+		point3 min = point3(x.min, y.min, z.min);
+		point3 max = point3(x.max, y.max, z.max);
+
+		std::clog << "Bounding box: min (" << min << ") - (" << max << ")\n";
 	}
 
 	static const aabb empty, universe;

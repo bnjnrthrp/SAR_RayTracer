@@ -26,9 +26,11 @@ class hittable {
 public: 
 	virtual ~hittable() = default;
 	virtual bool hit(const ray& r, interval ray_t, hit_record& rec) const = 0;
-	virtual aabb bounding_box() const = 0;
+	virtual aabb bounding_box() const { return bbox; }
 	virtual double pdf_value(const point3& origin, const vec3& direction) const { return 0.0; }
 	virtual vec3 random(const point3& origin) const { return vec3(1, 0, 0); }
+private:
+	aabb bbox;
 };
 
 class scale : public hittable {
@@ -38,25 +40,32 @@ public:
 	}
 
 	bool hit(const ray& r, interval ray_t, hit_record& rec) const override {
-		ray unscaled_r(r.origin() / scale_factor, r.direction() / scale_factor, r.time());
+		vec3 inv_scale = inverse(scale_factor);
+		ray unscaled_r(r.origin() * inv_scale, r.direction() * inv_scale, r.time());
 
 		if (!object->hit(unscaled_r, ray_t, rec))
 			return false;
 
-		vec3 normal = rec.normal;
+		vec3 normal = unit_vector(rec.normal * inv_scale);
 
 		rec.p *= scale_factor;
-		rec.set_face_normal(unscaled_r, unit_vector(rec.normal / scale_factor));
+		rec.set_face_normal(unscaled_r, normal);
 
 		return true;
 	}
-
 	aabb bounding_box() const override { return bbox; }
+
 
 private:
 	shared_ptr<hittable> object;
 	vec3 scale_factor;
+	vec3 inverse_scale;
 	aabb bbox;
+
+	vec3 inverse(vec3 scale) const {
+		return vec3(1.0 / scale.x(), 1.0 / scale.y(), 1.0 / scale.z());
+	}
+
 };
 
 class translate : public hittable {
