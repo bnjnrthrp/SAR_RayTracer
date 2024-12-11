@@ -136,8 +136,6 @@ void eiffel_SAR() {
     auto light = make_shared<diffuse_light>(color(7, 7, 7));
     auto white = make_shared<lambertian>(color(.1, .1, .1));
 
-    world.add(make_shared<quad>(point3(-200, -400, -400), vec3(555, 0, 0), vec3(0, 0, 555), white)); // floor
-
     // Choose from frequency bands {Visible, X-, C-, L-}
     double wavelength = SPECTRAL_MAP.find(X)->second;
 
