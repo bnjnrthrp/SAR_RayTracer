@@ -2,6 +2,19 @@
 #define RAY_H
 
 #include "vec3.h"
+#include <map>
+
+enum SPECTRUM {VISIBLE, X, C, L};
+
+// Size of the spectrum enum
+//static double SPECTRAL_ARRAY[4] = { 5.5e-7, .03, .06, .23 };
+
+static std::map<SPECTRUM, double> SPECTRAL_MAP{
+	{VISIBLE, 5.5e-7},
+	{X, .03},
+	{C, .06},
+	{L, .23}
+};
 
 class ray
 {

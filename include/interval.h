@@ -19,6 +19,10 @@ public:
 
 	bool surrounds(double x) const { return min < x && x < max; }
 
+	double midpoint() const {
+		return min + ((max - min) / 2.0);
+	}
+
 	double clamp(double x) const {
 		if (x < min) return min;
 		if (x > max) return max;

@@ -100,6 +100,10 @@ public:
 		std::clog << "Bounding box: min (" << min << ") - (" << max << ")\n";
 	}
 
+	point3 get_center() const {
+		return point3(x.midpoint(), y.midpoint(), z.midpoint());
+	}
+
 	static const aabb empty, universe;
 
 private:

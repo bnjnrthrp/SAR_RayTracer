@@ -12,7 +12,7 @@ endif()
 project ("SAR_RayTracer")
 
 # Add source to this project's executable.
-add_executable (SAR_RayTracer "src/SAR_RayTracer.cpp"   "include/vec3.h" "include/ray.h" "include/hittable.h" "include/sphere.h" "include/hittable_list.h" "include/camera.h" "include/material.h" "include/common.h" "include/color.h"  "src/newMain.cpp" "include/interval.h" "include/aabb.h" "include/bvh.h" "include/texture.h" "include/rtw_stb_image.h" "include/perlin.h" "include/quad.h" "include/constant_medium.h" "src/monte.cpp" "src/monteCarlo.cpp" "include/onb.h" "include/pdf.h" "include/triangle.h"  "include/model.h" "external/tiny_obj_loader.h")
+add_executable (SAR_RayTracer    "include/vec3.h" "include/ray.h" "include/hittable.h" "include/sphere.h" "include/hittable_list.h" "include/camera.h" "include/material.h" "include/common.h" "include/color.h"  "src/newMain.cpp" "include/interval.h" "include/aabb.h" "include/bvh.h" "include/texture.h" "include/rtw_stb_image.h" "include/perlin.h" "include/quad.h" "include/constant_medium.h"   "include/onb.h" "include/pdf.h" "include/triangle.h"  "include/model.h" "external/tiny_obj_loader.h")
 
 if (CMAKE_VERSION VERSION_GREATER 3.12)
   set_property(TARGET SAR_RayTracer PROPERTY CXX_STANDARD 20)

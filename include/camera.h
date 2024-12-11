@@ -5,6 +5,7 @@
 * Original code by Peter Shirley (Ray Tracing in a Weekend series)	
 */
 
+#include "quad.h"
 #include "hittable.h"
 #include "pdf.h"
 #include "material.h"
@@ -33,62 +34,8 @@ public:
     double defocus_angle        = 0;        // Variation angle of rays through each pixel
     double focus_dist           = 10;       // Distance from camera lookfrom point to plane of perfect focus
 
-	void render(const hittable& world, const hittable& lights) {
-		initialize();
-
-		std::cout << "P3\n" << image_width << ' ' << image_height << "\n255\n";
-
-		for (int j = 0; j < image_height; j++) {
-			std::clog << "\rScanlines remaining: " << (image_height - j) << ' ' << std::flush;
-			for (int i = 0; i < image_width; i++) {
-                color pixel_color(0.0, 0.0, 0.0);
-                for (int s_j = 0; s_j < sqrt_spp; s_j++) {
-                    for (int s_i = 0; s_i < sqrt_spp; s_i++) {
-                        ray r = get_ray(i, j, s_i, s_j);
-                        pixel_color += ray_color(r, max_depth, world, lights);
-                    }
-                }
-				write_color(std::cout, pixel_samples_scale * pixel_color);
-			}
-		}
-
-        /*for (int j = image_height / 2.0 - 3; j < image_height / 2.0 + 3; j++) {
-            std::clog << "\rScanlines remaining: " << (image_height - j) << ' ' << std::flush;
-            for (int i = image_width / 2.0 - 3; i < image_width / 2.0 + 3; i++) {
-                color pixel_color(0.0, 0.0, 0.0);
-                for (int s_j = 0; s_j < sqrt_spp; s_j++) {
-                    for (int s_i = 0; s_i < sqrt_spp; s_i++) {
-                        ray r = get_ray(i, j, s_i, s_j);
-                        pixel_color += ray_color(r, max_depth, world, lights);
-                    }
-                }
-                write_color(std::cout, pixel_samples_scale * pixel_color);
-            }
-        }*/
-        
-		std::clog << "\rDone.                 \n";
-        std::clog << "Triangle hits: " << tri_hits << "\n";
-        std::clog << "Quad hits: " << quad_hits << "\n";
-        std::clog << "Tri bbox hits: " << tri_aabb_hits << "\n";
-        std::clog << "Tri parallel: " << tri_parallel<< "\n";
-        std::clog << "Tri intersection beyond: " << tri_intersection_behind<< "\n";
-        std::clog << "Tri barycentric: " << tri_barycentric<< "\n";
-        std::clog << "Tri beyond: " << tri_beyond << "\n";
-        
-	}
-private:
-    int    image_height;            // Rendered image height
-    double pixel_samples_scale;     // Color scale factor for a sum of pixel samples
-    int     sqrt_spp;               // Square root of number of samples per pixel
-    double recip_sqrt_spp;          // 1 / sqrt_spp
-    point3 center;                  // Camera center
-    point3 pixel00_loc;             // Location of pixel 0, 0
-    vec3   pixel_delta_u;           // Offset to pixel to the right
-    vec3   pixel_delta_v;           // Offset to pixel below
-    vec3   u, v, w;                 // Camera frame basis vectors
-    vec3   defocus_disk_u;          // Defocus disk horizontal radius
-    vec3   defocus_disk_v;          // Defocus disk vertical radius
-
+    camera() {}
+    
     void initialize() {
         image_height = int(image_width / aspect_ratio);
         image_height = (image_height < 1) ? 1 : image_height;
@@ -111,22 +58,73 @@ private:
         v = cross(w, u);
 
         // Calculate the vectors across the horizontal and down the vertical viewport edges.
-        vec3 viewport_u = viewport_width * u;
-        vec3 viewport_v = viewport_height * -v;
+        viewport_u = viewport_width * u;
+        viewport_v = viewport_height * -v;
 
         // Calculate the horizontal and vertical delta vectors from pixel to pixel.
         pixel_delta_u = viewport_u / image_width;
         pixel_delta_v = viewport_v / image_height;
 
         // Calculate the location of the upper left pixel.
-        point3 viewport_upper_left = center - (focus_dist * w) - viewport_u/2.0 - viewport_v/2.0;
+        point3 viewport_upper_left = center - (focus_dist * w) - viewport_u / 2.0 - viewport_v / 2.0;
         pixel00_loc = viewport_upper_left + 0.5 * (pixel_delta_u + pixel_delta_v);
+        viewport_ll = center - (focus_dist * w) - viewport_u / 2.0 + viewport_v / 2.0;
 
         // Calculate the camera defocus disk basis vectors
         double defocus_radius = focus_dist * std::tan(degrees_to_radians(defocus_angle / 2.0));
         defocus_disk_u = u * defocus_radius;
         defocus_disk_v = v * defocus_radius;
     }
+
+	void render(const hittable& world, const hittable& emitters) {
+		std::cout << "P3\n" << image_width << ' ' << image_height << "\n255\n";
+
+		for (int j = 0; j < image_height; j++) {
+			std::clog << "\rScanlines remaining: " << (image_height - j) << ' ' << std::flush;
+			for (int i = 0; i < image_width; i++) {
+                color pixel_color(0.0, 0.0, 0.0);
+                for (int s_j = 0; s_j < sqrt_spp; s_j++) {
+                    for (int s_i = 0; s_i < sqrt_spp; s_i++) {
+                        ray r = get_ray(i, j, s_i, s_j);
+                        pixel_color += ray_color(r, max_depth, world, emitters);
+                    }
+                }
+				write_color(std::cout, pixel_samples_scale * pixel_color);
+			}
+		}
+        
+		std::clog << "\rDone.                 \n";
+        std::clog << "Triangle hits: " << tri_hits << "\n";
+        std::clog << "Quad hits: " << quad_hits << "\n";
+        std::clog << "Tri bbox hits: " << tri_aabb_hits << "\n";
+        std::clog << "Tri parallel: " << tri_parallel<< "\n";
+        std::clog << "Tri intersection beyond: " << tri_intersection_behind<< "\n";
+        std::clog << "Tri barycentric: " << tri_barycentric<< "\n";
+        std::clog << "Tri beyond: " << tri_beyond << "\n";
+        
+	}
+
+    void colocate_light(hittable_list& world, hittable_list& lights, const shared_ptr<material>& light) {
+        vec3 offset = (lookat - lookfrom) * 0.01;
+
+        world.add(make_shared<quad>(center + (viewport_u * 100.0 / 2.0) + (viewport_v * 100.0 / 2.0) - offset, -viewport_u * 100.0, -viewport_v * 100.0, light));
+        lights.add(make_shared<quad>(center + (viewport_u * 100.0 / 2.0) + (viewport_u * 100.0 / 2.0), viewport_u * 100, viewport_v * 100, shared_ptr<material>()));
+    }
+private:
+    int    image_height;            // Rendered image height
+    double pixel_samples_scale;     // Color scale factor for a sum of pixel samples
+    int     sqrt_spp;               // Square root of number of samples per pixel
+    double recip_sqrt_spp;          // 1 / sqrt_spp
+    point3 center;                  // Camera center
+    point3 pixel00_loc;             // Location of pixel 0, 0
+    point3 viewport_ll;               // viewport lower left
+    vec3   viewport_u;
+    vec3   viewport_v;
+    vec3   pixel_delta_u;           // Offset to pixel to the right
+    vec3   pixel_delta_v;           // Offset to pixel below
+    vec3   u, v, w;                 // Camera frame basis vectors
+    vec3   defocus_disk_u;          // Defocus disk horizontal radius
+    vec3   defocus_disk_v;          // Defocus disk vertical radius
 
     /*Constructs a camera ray originatin from the origin and directed at pixel i, j*/
     ray get_ray(int i, int j, int s_i, int s_j) const {
@@ -161,7 +159,7 @@ private:
         return center + (p[0] * defocus_disk_u) + (p[1] * defocus_disk_v);
     }
 
-    color ray_color(const ray& r, int depth, const hittable& world, const hittable& lights) {
+    virtual color ray_color(const ray& r, int depth, const hittable& world, const hittable& emitters) {
         if (depth <= 0)
             return color(0, 0, 0);
         
@@ -177,10 +175,10 @@ private:
             return color_from_emission;
 
         if (srec.skip_pdf) {
-            return srec.attenuation * ray_color(srec.skip_pdf_ray, depth - 1, world, lights);
+            return srec.attenuation * ray_color(srec.skip_pdf_ray, depth - 1, world, emitters);
         }
         
-        auto light_ptr = make_shared<hittable_pdf>(lights, rec.p);
+        auto light_ptr = make_shared<hittable_pdf>(emitters, rec.p);
         mixture_pdf p(light_ptr, srec.pdf_ptr);
 
         ray scattered = ray(rec.p, p.generate(), r.time());
@@ -188,15 +186,13 @@ private:
 
         double scattering_pdf = rec.mat->scattering_pdf(r, rec, scattered);
 
-        color sample_color = ray_color(scattered, depth - 1, world, lights);
+        color sample_color = ray_color(scattered, depth - 1, world, emitters);
         color color_from_scatter = (srec.attenuation * scattering_pdf * sample_color) / pdf_value;
 
         return color_from_emission + color_from_scatter;
     }
+
+
 };
-
-
-
-
 
 #endif // CAMERA_H

@@ -23,12 +23,48 @@ color _get_color(tinyobj::real_t* raws) {
 	return color(raws[0], raws[1], raws[2]);
 }
 
-shared_ptr<material> get_mtl_mat(const tinyobj::material_t& reader_mat) {
-	shared_ptr<texture> diffuse_a = make_shared<solid_color>(_get_color((tinyobj::real_t*)reader_mat.diffuse));
-	shared_ptr<texture> specular_a = make_shared<solid_color>(_get_color((tinyobj::real_t*)reader_mat.specular));
-	shared_ptr<texture> emissive_a = make_shared<solid_color>(_get_color((tinyobj::real_t*)reader_mat.emission));
-	shared_ptr<texture> transparency_a = make_shared<solid_color>(_get_color((tinyobj::real_t*)reader_mat.transmittance)*(1.0 - reader_mat.dissolve));
-	shared_ptr<texture> sharpness_a = make_shared<solid_color>(color(1, 0, 0) * reader_mat.shininess);
+shared_ptr<material> get_mtl_mat(const tinyobj::material_t& reader_mat, double wavelength) {
+	shared_ptr<texture> diffuse_a;
+	shared_ptr<texture> specular_a;
+	shared_ptr<texture> emissive_a;
+	shared_ptr<texture> transparency_a;
+	shared_ptr<texture> sharpness_a;
+	
+	//std::clog << "Parsing material: " << reader_mat.name << std::endl;
+	
+	if (wavelength > 0.0) {
+		auto search = tex_map.find(reader_mat.name);
+		if (search != tex_map.end()) {
+			std::clog << "Adjusting colors for: " << reader_mat.name << std::endl;
+			double rms_height = tex_map.find(reader_mat.name)->second;
+			double alpha_spec = 0.0;
+			if (rms_height < (wavelength / 32.0)) { // Smooth
+				diffuse_a = make_shared<solid_color>(color(0.05, 0.05, 0.05));  specular_a= make_shared<solid_color>(color(1.0, 1.0, 1.0)); 
+				alpha_spec = 1.0;
+			}
+			else if (rms_height > wavelength / 2.0) { // Rough
+				diffuse_a = make_shared<solid_color>(color(0.3, 0.3, 0.3)); specular_a = make_shared<solid_color>(color(0.05, 0.05, 0.05));
+				alpha_spec = 0.0;
+			}
+			else {	// Slightly Rough
+				double min = wavelength / 32.0;
+				double max = wavelength / 2.0;
+				alpha_spec = (rms_height - min) / (max - min);
+				
+				diffuse_a = make_shared<solid_color>(color(0.2 * (1 - alpha_spec))); specular_a = make_shared<solid_color>(color(0.6 * alpha_spec));
+			}
+		}
+		else
+			std::clog << reader_mat.name << std::endl;
+	}
+	else {
+		diffuse_a = make_shared<solid_color>(_get_color((tinyobj::real_t*)reader_mat.diffuse));
+		specular_a = make_shared<solid_color>(_get_color((tinyobj::real_t*)reader_mat.specular));
+	}
+
+	emissive_a = make_shared<solid_color>(_get_color((tinyobj::real_t*)reader_mat.emission));
+	transparency_a = make_shared<solid_color>(_get_color((tinyobj::real_t*)reader_mat.transmittance) * (1.0 - reader_mat.dissolve));
+	sharpness_a = make_shared<solid_color>(color(1, 0, 0) * reader_mat.shininess);
 
 	return make_shared<mtl_material>(
 		diffuse_a,
@@ -36,11 +72,12 @@ shared_ptr<material> get_mtl_mat(const tinyobj::material_t& reader_mat) {
 		emissive_a,
 		transparency_a,
 		sharpness_a,
-		reader_mat.illum
+		reader_mat.illum,
+		wavelength
 	);
 }
 
-shared_ptr<hittable> load_model_from_file(std::string filename, shared_ptr<material> model_material, bool shade_smooth) {
+shared_ptr<hittable> load_model_from_file(std::string filename, shared_ptr<material> model_material, double wavelength) {
 	std::cerr << "Loading .obj file '" << filename << "'." << std::endl;
 
 	std::string inputfile = filename;
@@ -65,9 +102,13 @@ shared_ptr<hittable> load_model_from_file(std::string filename, shared_ptr<mater
 
 	// Convert from TinyObjLoader to RT in a Weekend materials
 	std::vector<shared_ptr<material>> converted_mats;
+	int count = 1;
 	for (auto& raw_mat : raw_materials) {
-		converted_mats.push_back(get_mtl_mat(raw_mat));
+		std::clog << "Loading " << count << " of " << raw_materials.size() << " materials.\n" << std::flush ;
+		converted_mats.push_back(get_mtl_mat(raw_mat, wavelength));
+		count++;
 	}
+	std::clog << "Materials loaded" << std::endl;
 
 	const bool use_mtl_file = (raw_materials.size() != 0);
 
@@ -123,23 +164,18 @@ shared_ptr<hittable> load_model_from_file(std::string filename, shared_ptr<mater
 					tri_vn[v] = vec3(nx, ny, nz);
 				}
 				else {
-					/*std::clog << "Asserting 0\n";
-					assert(0);*/
 					continue;
 				}
 			}
-			//std::clog << "Made it to line 116\n";
 			shared_ptr<material> tri_mat;
 			if (use_mtl_file) {
-				//std::clog << "using mtl file\n";
-				//std::clog << "use mtl log " << use_mtl_file << "\n";
 				tri_mat = converted_mats[shapes[s].mesh.material_ids[f]];
-				//std::clog << "converted mat\n";
 			}
 			else {
-				//std::clog << "Not using mtl file\n";
 				tri_mat = model_material;
 			}
+
+
 			if (has_normals) {
 				shape_triangles.add(make_shared<triangle>(
 					tri_v[0], tri_v[1], tri_v[2], tri_vn[0], tri_vn[1], tri_vn[2], tri_mat));

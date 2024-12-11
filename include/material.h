@@ -81,7 +81,7 @@ private:
 class glossy : public material {
 public:
     // Fuzz texture interpreted as the magnitude of the fuzz texture.
-    glossy(shared_ptr<texture>& a, shared_ptr<texture>& f) : albedo(a), fuzz(f) {}
+    glossy(shared_ptr<texture> a, shared_ptr<texture> f) : albedo(a), fuzz(f) {}
 
     virtual bool scatter(
         const ray& r_in, const hit_record& rec, scatter_record& srec
@@ -98,6 +98,48 @@ public:
     }
 public:
     shared_ptr<texture> albedo, fuzz;
+};
+
+// This is a combination of lambertian and glossy
+class medium : public material {
+public:
+    // Fuzz texture interpreted as the magnitude of the fuzz texture.
+    medium(const color& albedo, const double fuzz) : albedo(make_shared<solid_color>(albedo)), fuzz(make_shared<solid_color>(color(fuzz, fuzz, fuzz))) {}
+    medium(shared_ptr<texture> a, shared_ptr<texture> f, double ratio) : albedo(a), fuzz(f), ratio(ratio > 1.0 ? 1.0 : ratio < 0.0 ? 0.0 : ratio)    {}
+
+    virtual bool scatter(
+        const ray& r_in, const hit_record& rec, scatter_record& srec
+    ) const override {
+        lambertian sample_lambertian(albedo);
+        glossy sample_metal(albedo, fuzz);
+
+        srec.attenuation = albedo->value(rec.u, rec.v, rec.p);
+        // Above ratio chooses between the lambertian (diffuse) reflection
+        if (random_double() > ratio) {
+            srec.pdf_ptr = make_shared<cosine_pdf>(rec.normal);
+            srec.skip_pdf = false;
+            return true;
+        }
+        else { // Otherwise it goes to metal (specular)
+            vec3 reflected = reflect(r_in.direction(), rec.normal);
+            double fuzz_factor = (fuzz->value(rec.u, rec.v, rec.p)).length();
+            reflected = unit_vector(reflected) + (fuzz_factor * random_unit_vector());
+    
+            srec.pdf_ptr = nullptr;
+            srec.skip_pdf = true;
+            srec.skip_pdf_ray = ray(rec.p, reflected, r_in.time());
+
+            return true;
+        }
+    }
+        // Lambertian model
+        double scattering_pdf(const ray & r_in, const hit_record & rec, const ray & scattered) const override {
+            double cos_theta = dot(rec.normal, unit_vector(scattered.direction()));
+            return cos_theta < 0 ? 0 : cos_theta / pi;
+        }
+public:
+    shared_ptr<texture> albedo, fuzz;
+    double ratio;
 };
 
 class dielectric : public material {
@@ -159,6 +201,55 @@ private:
     shared_ptr<texture> tex;
 };
 
+class spotlight : public material {
+public:
+    spotlight(shared_ptr<texture> tex) : tex(tex) {}
+    spotlight(const point3& pos, const vec3& dir, const color& emit, double theta, double sharpness)
+        : position(pos),
+        direction(dir),
+        tex(make_shared<solid_color>(emit)),
+        cos_theta(std::cos(degrees_to_radians(theta))),
+        sharpness(sharpness)
+        {
+        std::clog << "spread angle is: " << theta << "\ncos_theta is: " << cos_theta << "\n";
+    }
+
+    color emitted(const ray& r_in, const hit_record& rec, double u, double v, const point3& p) const override {
+        if (!rec.front_face)
+            return color(0., 0., 0.);
+
+        vec3 light_vector = position - rec.p;
+        //std::clog << "light_vector: " << light_vector << std::endl;
+        double dist = light_vector.length();
+        light_vector = unit_vector(light_vector);
+        vec3 dir = unit_vector(direction);
+        double test = dot(-light_vector, dir);
+        
+        // Outside cone
+        if (test < cos_theta) {
+            //std::clog << "outside: " << rec.p << "\n";
+            //std::clog << "test is " << test << std::endl;
+            return color(0., 0., 0.);
+        }
+        else {
+            //std::clog << "hit: " << rec.p << "\n";
+            //std::clog << "test: " << test << "\n";
+            return tex->value(u, v, p) * std::pow(cos_theta, sharpness);
+        }
+        
+    }
+private:
+    point3 position;
+    vec3 direction;
+    shared_ptr<texture> tex;
+    double cos_theta;
+    double sharpness;
+
+    /*double falloff(vec3& color, double dist) {
+        return color(std::fmin(1.0, 1.0 / (fallout_const + fallout_linear * distance + fallout_exponent * dist * dist)));
+    }*/
+};
+
 class isotropic : public material {
 public:
     isotropic(const color& albedo) : tex(make_shared<solid_color>(albedo)) {}
@@ -202,7 +293,8 @@ public:
         shared_ptr<texture> emissive_a,
         shared_ptr<texture> transparency_map,
         shared_ptr<texture> sharpness_map,
-        int illum) :
+        int illum,
+        double alpha) :
         emissive_text(emissive_a),
         diffuse_text(diffuse_a),
         specular_text(specular_a),
@@ -210,7 +302,7 @@ public:
         roughness_text(make_shared<roughness_from_sharpness_texture>(sharpness_map, 1, 10000))
     {
         diffuse_mat = make_shared<lambertian>(diffuse_text);
-        specular_mat = make_shared<glossy>(specular_text, roughness_text);
+        specular_mat = make_shared<medium>(specular_text, roughness_text, alpha);
         emissive_mat = make_shared<diffuse_light>(emissive_text);
     }
 
