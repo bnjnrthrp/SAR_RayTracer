@@ -105,10 +105,10 @@ This image was parsed from Minecraft to .obj using the Mineways tool[^10] by McG
 
 ![Rungholt Ray traced](./images/README_images/7_Final_Image_Color.png)  
 ![Rungholt SAR](./images/README_images/8_Final_Image_SAR.png)  
-![Differences in water](./images/README_images/9_Closeup_Reflection.png)  
-![Differences in smooth materials](./images/README_images/10_Closeup_Smooth.png)  
-![Differences in vegetations](./images/README_images/11_Closeup_Vegetation.png)  
-![Differences in building materials](./images/README_images/12_Closeup_Tower.png)  
+![Differences in water](./images/README_images/9_Closeup_Reflection.png) Notice the reflections in the SAR image that aren’t in the visual spectrum  
+![Differences in smooth materials](./images/README_images/10_Closeup_Smooth.png) Smooth sand, visible in light, becomes a reflector in X-band, causing highlights along the shoreline.  
+![Differences in vegetations](./images/README_images/11_Closeup_Vegetation.png) Vegetative canopies become indistinguishable blobs as X-band becomes uniformly scattered by the leaves.  
+![Differences in building materials](./images/README_images/12_Closeup_Tower.png) Towers and roads, with their different materials, have much higher contrast than their visual counterparts.  
 
 ## 7 Conclusion
 
